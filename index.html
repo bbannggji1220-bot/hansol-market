@@ -159,6 +159,7 @@ button{font-family:inherit}
 .temp-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .temp-count{font-size:11.5px;color:var(--ink-soft)}
 .temp-value{font-weight:900;font-variant-numeric:tabular-nums;color:var(--danger);font-size:15px;flex:none}
+.home-notice{text-align:center;color:var(--ink-soft);font-size:13.5px;font-weight:700;margin-bottom:18px}
 
 .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);text-decoration:none;font-size:13px;font-weight:700;margin-bottom:16px}
 .back-link:hover{color:var(--accent)}
@@ -633,6 +634,7 @@ function renderTradeNavCard(count, enabled){
 function renderHome(state, ui){
   return renderHero(state, ui) +
     renderTempBoard(state) +
+    '<p class="home-notice">10월 7일 행사 전까지 아래의 섹션별 물품을 미리 보고 마음에 드는 물품에는 하트를 눌러주세요~!</p>' +
     '<div class="zone-nav">' +
       renderZoneNavCard(ZONE_META.free, state.zones.free.length) +
       renderZoneNavCard(ZONE_META.used, state.zones.used.length) +
