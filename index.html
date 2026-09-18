@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한솔마켓 | 제주동여자중학교</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+
+:root{
+  --bg:#FCF7E8;
+  --surface:#FFFFFF;
+  --surface-2:#FFFDF6;
+  --ink:#2B2013;
+  --ink-soft:#786A4E;
+  --border:#E9DFC0;
+  --shadow:0 10px 30px -14px rgba(60,45,10,0.28);
+  --accent:#E8791A;
+  --accent-ink:#FFFFFF;
+  --free:#2F9E44;
+  --free-bg:#E8F6EA;
+  --used:#1C7ED6;
+  --used-bg:#E8F2FC;
+  --auction:#E8590C;
+  --auction-bg:#FDECDD;
+  --danger:#D6455A;
+  --radius-lg:22px;
+  --radius-md:16px;
+  --radius-sm:10px;
+  --font-display:'Jua','Noto Sans KR',sans-serif;
+  --font-body:'Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1C160D;
+    --surface:#282013;
+    --surface-2:#312717;
+    --ink:#F4EEDE;
+    --ink-soft:#C7B994;
+    --border:#453724;
+    --shadow:0 10px 30px -14px rgba(0,0,0,0.5);
+    --accent:#F0954A;
+    --accent-ink:#20140A;
+    --free:#5FD37A;
+    --free-bg:#1D3324;
+    --used:#6FB6F4;
+    --used-bg:#182D42;
+    --auction:#F49A5C;
+    --auction-bg:#3A2413;
+    --danger:#EC7A8B;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1C160D;
+  --surface:#282013;
+  --surface-2:#312717;
+  --ink:#F4EEDE;
+  --ink-soft:#C7B994;
+  --border:#453724;
+  --shadow:0 10px 30px -14px rgba(0,0,0,0.5);
+  --accent:#F0954A;
+  --accent-ink:#20140A;
+  --free:#5FD37A;
+  --free-bg:#1D3324;
+  --used:#6FB6F4;
+  --used-bg:#182D42;
+  --auction:#F49A5C;
+  --auction-bg:#3A2413;
+  --danger:#EC7A8B;
+  color-scheme:dark;
+}
+
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--font-display);font-weight:400;text-wrap:balance;margin:0}
+p{margin:0}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:34px;height:34px;flex:none}
+.brand-text{display:flex;flex-direction:column;line-height:1.15}
+.brand-name{font-family:var(--font-display);font-size:22px;color:var(--accent)}
+.brand-sub{font-size:11px;color:var(--ink-soft);letter-spacing:.03em}
+.admin-pill{
+  font-size:12px;font-weight:700;padding:7px 14px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface-2);color:var(--ink-soft);
+  cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+}
+.admin-pill:hover{border-color:var(--accent);color:var(--accent)}
+.admin-pill.is-on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+
+.hero{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:26px 28px;margin-bottom:28px;box-shadow:var(--shadow);
+  display:grid;gap:20px;
+}
+.hero-text{overflow-x:auto}
+.hero-text h1{font-size:clamp(20px,3.4vw,42px);color:var(--ink);white-space:nowrap}
+.hero-text p{margin-top:10px;color:var(--ink-soft);white-space:nowrap}
+.hero-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.meta-tile{display:flex;gap:10px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px}
+.meta-tile svg{flex:none;width:20px;height:20px;color:var(--accent);margin-top:2px}
+.meta-label{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);letter-spacing:.04em}
+.meta-tile p{font-size:14px;font-weight:500;margin-top:2px}
+.hero-admin-row{display:flex;justify-content:flex-end;margin-top:4px}
+
+.zone-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-bottom:28px}
+.zone-nav-card{display:flex;flex-direction:column;gap:8px;padding:22px;border-radius:var(--radius-lg);border:1px solid var(--border);border-top-width:4px;background:var(--surface);box-shadow:var(--shadow);text-decoration:none;color:var(--ink);transition:transform .15s}
+.zone-nav-card:hover{transform:translateY(-3px)}
+.zone-nav-card .zone-icon{width:46px;height:46px;border-radius:14px;margin-bottom:4px}
+.zone-nav-card .zone-icon svg{width:26px;height:26px}
+.zone-nav-card h2{font-size:20px}
+.zone-nav-card p{color:var(--ink-soft);font-size:13px}
+.zone-nav-count{margin-top:6px;font-size:12px;font-weight:700;color:var(--ink-soft)}
+.zone-nav-cta{font-size:12.5px;font-weight:700}
+.zone-nav-free{border-top-color:var(--free)}
+.zone-nav-free .zone-icon{background:var(--free-bg);color:var(--free)}
+.zone-nav-free .zone-nav-cta{color:var(--free)}
+.zone-nav-used{border-top-color:var(--used)}
+.zone-nav-used .zone-icon{background:var(--used-bg);color:var(--used)}
+.zone-nav-used .zone-nav-cta{color:var(--used)}
+.zone-nav-auction{border-top-color:var(--auction)}
+.zone-nav-auction .zone-icon{background:var(--auction-bg);color:var(--auction)}
+.zone-nav-auction .zone-nav-cta{color:var(--auction)}
+.zone-nav-trade{border-top-color:var(--accent)}
+.zone-nav-trade .zone-icon{background:var(--surface-2);color:var(--accent)}
+.zone-nav-trade .zone-nav-cta{color:var(--accent)}
+
+.temp-board{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:28px;box-shadow:var(--shadow)}
+.temp-board-head{display:flex;align-items:flex-start;gap:10px}
+.temp-board-head svg{width:24px;height:24px;color:var(--danger);flex:none;margin-top:2px}
+.temp-board-head h2{font-size:19px;color:var(--ink)}
+.temp-board-head p{color:var(--ink-soft);font-size:13px;margin-top:4px}
+.temp-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+.temp-card{display:flex;align-items:center;gap:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px}
+.temp-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;background:var(--surface);border:1px solid var(--border);flex:none}
+.temp-rank-1 .temp-rank{background:#F5C542;border-color:#F5C542;color:#5A3E00}
+.temp-rank-2 .temp-rank{background:#D8D8D8;border-color:#D8D8D8;color:#3A3A3A}
+.temp-rank-3 .temp-rank{background:#E3A165;border-color:#E3A165;color:#4A2A00}
+.temp-info{display:flex;flex-direction:column;flex:1;min-width:0}
+.temp-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.temp-count{font-size:11.5px;color:var(--ink-soft)}
+.temp-value{font-weight:900;font-variant-numeric:tabular-nums;color:var(--danger);font-size:15px;flex:none}
+
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft);text-decoration:none;font-size:13px;font-weight:700;margin-bottom:16px}
+.back-link:hover{color:var(--accent)}
+
+.btn{border-radius:999px;border:1px solid transparent;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:filter .15s,background .15s}
+.btn-sm{padding:7px 13px;font-size:12.5px}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--ink-soft)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{filter:brightness(1.06)}
+
+.item-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--radius-md);padding:16px;margin:14px 0}
+.event-form{margin-top:14px}
+.field{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+.field-wide{grid-column:1/-1}
+.field input,.field textarea,.field select{
+  font:inherit;font-weight:400;color:var(--ink);background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;resize:vertical;
+}
+.field-error{grid-column:1/-1;color:var(--danger);font-size:12.5px;margin:0}
+.photo-field{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.photo-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.photo-preview{width:56px;height:56px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface)}
+.file-btn{display:inline-flex;align-items:center;cursor:pointer}
+.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}
+
+.zone{border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface);padding:24px;margin-bottom:24px;box-shadow:var(--shadow)}
+.zone-head{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px}
+.zone-title{display:flex;align-items:center;gap:10px}
+.zone-icon{display:inline-flex;width:38px;height:38px;border-radius:12px;align-items:center;justify-content:center;flex:none}
+.zone-icon svg{width:22px;height:22px}
+.zone-title h2{font-size:22px}
+.zone-tagline{margin-top:6px;color:var(--ink-soft);font-size:13.5px}
+.zone-free .zone-icon{background:var(--free-bg);color:var(--free)}
+.zone-free h2{color:var(--free)}
+.zone-used .zone-icon{background:var(--used-bg);color:var(--used)}
+.zone-used h2{color:var(--used)}
+.zone-auction .zone-icon{background:var(--auction-bg);color:var(--auction)}
+.zone-auction h2{color:var(--auction)}
+.zone-trade .zone-icon{background:var(--surface-2);color:var(--accent)}
+.zone-trade h2{color:var(--accent)}
+
+.zone-info{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:6px}
+.zone-info-label{display:inline-block;font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:2px 10px;margin-bottom:6px}
+.zone-info p{font-size:13.5px;color:var(--ink-soft)}
+
+.zone-admin{display:flex;justify-content:flex-end;margin-top:10px}
+
+.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:16px}
+.item-card{position:relative;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px}
+.item-photo{width:100%;height:150px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:10px;display:block;background:var(--surface)}
+.item-photo-empty{display:flex;align-items:center;justify-content:center}
+.item-photo-empty svg{width:34px;height:34px;opacity:.5}
+.zone-free .item-photo-empty{background:var(--free-bg);color:var(--free)}
+.zone-used .item-photo-empty{background:var(--used-bg);color:var(--used)}
+.zone-auction .item-photo-empty{background:var(--auction-bg);color:var(--auction)}
+.item-card h3{font-size:15.5px;font-family:var(--font-body);font-weight:700;padding-right:20px}
+.item-desc{margin-top:6px;font-size:13px;color:var(--ink-soft)}
+.item-meta{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.price{font-variant-numeric:tabular-nums;font-weight:900;font-size:15px}
+.zone-used .price{color:var(--used)}
+.zone-auction .price{color:var(--auction)}
+.chip{font-size:11.5px;font-weight:700;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px 9px;color:var(--ink)}
+.chip-soft{color:var(--ink-soft);font-weight:500}
+.card-del{
+  position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;
+  border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
+  font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.card-del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+.empty-note{color:var(--ink-soft);font-size:13.5px;padding:10px 2px}
+
+.trade-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.trade-card{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;flex-wrap:wrap}
+.trade-main h3{font-size:15px;font-weight:700;font-family:var(--font-body)}
+.trade-main .item-desc{margin-top:4px}
+.trade-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+.footer{text-align:center;padding:30px 0 6px;color:var(--ink-soft);font-family:var(--font-display);font-size:16px}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);
+  background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13px;font-weight:700;
+  opacity:0;transition:opacity .2s,transform .2s;z-index:60;box-shadow:var(--shadow);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(20,15,5,0.45);z-index:50}
+.modal{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:51;width:min(360px,86vw);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;box-shadow:var(--shadow);
+}
+.modal h2{font-size:19px;margin-bottom:8px}
+.modal p{color:var(--ink-soft);font-size:13.5px;margin-bottom:14px}
+.modal #passcode-input{width:100%;font:inherit;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--ink)}
+.modal .form-actions{margin-top:14px}
+
+.loading-note{padding:60px 20px;text-align:center;color:var(--ink-soft)}
+
+@media (max-width:760px){
+  .hero-meta{grid-template-columns:1fr}
+  .zone-info{grid-template-columns:1fr}
+  .zone{padding:18px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important}
+}
+</style>
+</head>
+<body>
+<div id="root"><p class="loading-note">불러오는 중…</p></div>
+<div id="toast" class="toast" hidden></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
+var firebaseConfig = {
+  apiKey: "AIzaSyAmvlnL34I5F8Fjho21TpzkZUhOJmW_LYU",
+  authDomain: "hansol-market.firebaseapp.com",
+  databaseURL: "https://hansol-market-default-rtdb.firebaseio.com",
+  projectId: "hansol-market",
+  storageBucket: "hansol-market.firebasestorage.app",
+  messagingSenderId: "824778047028",
+  appId: "1:824778047028:web:299d44610d237928abd461"
+};
+var fbApp = initializeApp(firebaseConfig);
+var db = getDatabase(fbApp);
+var stateRef = ref(db, 'hansol');
+
+var DEFAULT_STATE = {"event":{"date":"10월 7일 수요일 15:30~","place":"도서관","audience":"교내 전 교직원","purpose":"안 쓰는 교구, 도서, 생활용품의 재활용을 통한 탄소중립 실천 및 교직원 간 친목 도모"},"adminCode":"1007","zones":{"free":[{"id":"f1","name":"국어·수학 참고서 세트 (중1~3)","desc":"상태 양호, 필기 없음","donor":"교무실","limit":"1인당 최대 3권"},{"id":"f2","name":"사무용 문구 모음 (볼펜·포스트잇 등)","desc":"미사용 다수 포함","donor":"","limit":"1인당 최대 2개"}],"used":[{"id":"u2","name":"에어프라이어 (3.5L)","desc":"사용감 적음, 정상 작동","price":25000,"seller":""}],"auction":[{"id":"a1","name":"재능기부 쿠폰 (커피 쏘기 1회)","desc":"기증자가 직접 쏩니다","startPrice":1000,"deadline":"10월 7일 16:30 마감"},{"id":"a2","name":"미개봉 텀블러 (고가 기증품)","desc":"브랜드 미개봉 신품","startPrice":2000,"deadline":"10월 7일 16:30 마감"}]},"trades":[{"id":"t1","name":"후드집업 (프리사이즈)","trader":"김 선생님","zone":"used","method":"무인 정산함 결제","price":8000,"date":"10월 7일","createdAt":1},{"id":"t2","name":"국어 참고서 3권","trader":"박 선생님","zone":"free","method":"무료 나눔","price":0,"date":"10월 7일","createdAt":2},{"id":"t3","name":"재능기부 쿠폰 (커피 쏘기 1회)","trader":"박 선생님","zone":"auction","method":"블라인드 경매 낙찰","price":1500,"date":"10월 7일","createdAt":3}]};
+
+var SS_KEY = 'hansol_admin_unlocked';
+var toastTimer = null;
+
+var ZONE_META = {
+  free: { key:'free', label:'무료 나눔 존', tagline:'필요한 분이 가져가세요, 전부 무료예요', desc:'상태 양호한 참고서·도서, 문구류, 소형 생활잡화, 여유 교구 등', method:'사전 수합 후 테이블에 진열합니다. 1인당 가져갈 수 있는 수량을 제한해 조기 소진을 방지해요.' },
+  used: { key:'used', label:'중고거래존', tagline:'합리적인 가격으로 직접 거래해요', desc:'의류, 소형 가전, 취미용품 등 판매자가 희망 가격을 명시한 물품', method:'물품에 부착된 가격표를 확인한 뒤 무인 정산함 또는 판매자 계좌이체로 구매해주세요.' },
+  auction: { key:'auction', label:'블라인드경매존', tagline:'마음에 드는 만큼, 조용히 입찰하세요', desc:'인기 물품, 고가 기증품, 교직원 재능 기부 쿠폰 등', method:'행사 시간 동안 물품별 희망 입찰가를 적어 제출합니다. 마감 시 최고가를 적어낸 분이 낙찰돼요.' }
+};
+
+var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
+var ICON_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.4 7-12a7 7 0 1 0-14 0c0 5.6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></svg>';
+var ICON_PEOPLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M2.5 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14.5 20c.3-2.6 2-4.6 4.2-5.3"/></svg>';
+var SUNFLOWER_SVG = '<svg viewBox="0 0 40 40" fill="none"><g fill="#F0A31C"><ellipse cx="20" cy="6" rx="4.3" ry="7"/><ellipse cx="20" cy="6" rx="4.3" ry="7" transform="rotate(45 20 20)"/><ellipse cx="20" cy="6" rx="4.3" ry="7" transform="rotate(90 20 20)"/><ellipse cx="20" cy="6" rx="4.3" ry="7" transform="rotate(135 20 20)"/><ellipse cx="20" cy="6" rx="4.3" ry="7" transform="rotate(180 20 20)"/><ellipse cx="20" cy="6" rx="4.3" ry="7" transform="rotate(225 20 20)"/><ellipse cx="20" cy="6" rx="4.3" ry="7" transform="rotate(270 20 20)"/><ellipse cx="20" cy="6" rx="4.3" ry="7" transform="rotate(315 20 20)"/></g><circle cx="20" cy="20" r="7" fill="#7A4A21"/></svg>';
+var ZONE_ICON = {
+  free: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="8.5" width="17" height="11.5" rx="1.6"/><path d="M3.5 12.5h17"/><path d="M12 8.5v11.5"/><path d="M9 8.5C7 8.5 6 7 7 5.3 8 3.6 10.5 4.4 12 8.5c1.5-4.1 4-4.9 5-3.2 1 1.7 0 3.2-2 3.2"/></svg>',
+  used: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 4h2.4L7.6 15h11l2.9-8H6.4"/></svg>',
+  auction: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8.5 3.5 6 6M4.5 12.5l6-6 3 3-6 6z"/><path d="m12.5 8.5 7 7"/><path d="M3 21h8"/><path d="m3 21 5.5-5.5"/></svg>',
+  trade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8h14l-3.2-3.2M20.5 16h-14l3.2 3.2"/></svg>'
+};
+var TEMP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.8V5.5a2.2 2.2 0 1 0-4.4 0v9.3a4.2 4.2 0 1 0 4.4 0Z"/></svg>';
+var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
+
+var appState = null;
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null };
+try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+function won(n){ return Number(n || 0).toLocaleString('ko-KR') + '원'; }
+function uid(){ return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+function toast(msg){
+  var t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.hidden = false;
+  requestAnimationFrame(function(){ t.classList.add('show'); });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.hidden = true; }, 200); }, 3000);
+}
+
+function fieldRow(name, label, type, required){
+  return '<label class="field"><span>' + label + '</span><input type="' + type + '" name="' + name + '"' +
+    (required ? ' required' : '') + (type === 'number' ? ' min="0" step="100"' : '') + '></label>';
+}
+function fieldRowVal(name, label, val){
+  return '<label class="field"><span>' + label + '</span><input type="text" name="' + name + '" value="' + escapeHtml(val) + '"></label>';
+}
+function fieldRowSelect(name, label, options){
+  var opts = options.map(function(o){ return '<option value="' + o[0] + '">' + escapeHtml(o[1]) + '</option>'; }).join('');
+  return '<label class="field"><span>' + label + '</span><select name="' + name + '">' + opts + '</select></label>';
+}
+
+function computeTemps(state){
+  var counts = {};
+  function add(name){
+    name = (name || '').trim();
+    if(!name) return;
+    counts[name] = (counts[name] || 0) + 1;
+  }
+  state.trades.forEach(function(t){ add(t.trader); });
+  state.zones.free.forEach(function(it){ add(it.donor); });
+  state.zones.used.forEach(function(it){ add(it.seller); });
+  state.zones.auction.forEach(function(it){ add(it.registrant); });
+  var list = Object.keys(counts).map(function(name){
+    return { name: name, count: counts[name], temp: 36.5 + counts[name] * 0.3 };
+  });
+  list.sort(function(a, b){ return b.temp - a.temp || a.name.localeCompare(b.name); });
+  return list;
+}
+
+function renderItemForm(zone){
+  var fields = '';
+  if(zone === 'free'){
+    fields = fieldRow('name','품목명 *','text',true) + fieldRow('desc','설명','text') + fieldRow('donor','기증자 (입력하면 온도에 반영돼요)','text') + fieldRow('limit','1인당 제한 (예: 최대 3점)','text');
+  } else if(zone === 'used'){
+    fields = fieldRow('name','품목명 *','text',true) + fieldRow('desc','설명','text') + fieldRow('price','희망 가격 (원) *','number',true) + fieldRow('seller','판매자 이름 (입력하면 온도에 반영돼요)','text');
+  } else {
+    fields = fieldRow('name','품목명 *','text',true) + fieldRow('desc','설명','text') + fieldRow('startPrice','시작가 (원) *','number',true) + fieldRow('deadline','입찰 마감 안내','text') + fieldRow('registrant','출품자 (입력하면 온도에 반영돼요)','text');
+  }
+  var photoField = '<div class="photo-field"><span>사진 (선택, 카드에 작게 표시돼요)</span><div class="photo-row">' +
+    '<img class="photo-preview" id="preview-' + zone + '" hidden>' +
+    '<label class="btn btn-ghost btn-sm file-btn">사진 선택<input type="file" accept="image/*" class="photo-input" data-zone="' + zone + '" hidden></label>' +
+    '<button type="button" class="btn btn-ghost btn-sm photo-clear" data-action="clear-photo" data-zone="' + zone + '" hidden>제거</button>' +
+  '</div></div>';
+  return '<form class="item-form" id="form-' + zone + '" data-zone="' + zone + '">' + fields + photoField +
+    '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">등록하기</button></div></form>';
+}
+
+function renderItemCard(zone, it, adminUnlocked){
+  var meta = '';
+  if(zone === 'free'){
+    meta = (it.limit ? '<span class="chip">' + escapeHtml(it.limit) + '</span>' : '') +
+           (it.donor ? '<span class="chip chip-soft">기증: ' + escapeHtml(it.donor) + '</span>' : '');
+  } else if(zone === 'used'){
+    meta = '<span class="price">' + won(it.price) + '</span>' +
+           (it.seller ? '<span class="chip chip-soft">' + escapeHtml(it.seller) + '</span>' : '');
+  } else {
+    meta = '<span class="price">시작가 ' + won(it.startPrice) + '</span>' +
+           (it.deadline ? '<span class="chip chip-soft">' + escapeHtml(it.deadline) + '</span>' : '') +
+           (it.registrant ? '<span class="chip chip-soft">출품: ' + escapeHtml(it.registrant) + '</span>' : '');
+  }
+  var delBtn = adminUnlocked ? '<button type="button" class="card-del" data-action="delete-item" data-zone="' + zone + '" data-id="' + it.id + '" aria-label="삭제">×</button>' : '';
+  var photoHtml = it.image
+    ? '<img class="item-photo" src="' + escapeHtml(it.image) + '" alt="">'
+    : '<div class="item-photo item-photo-empty">' + ZONE_ICON[zone] + '</div>';
+  return '<article class="item-card">' + delBtn + photoHtml + '<h3>' + escapeHtml(it.name) + '</h3>' +
+    (it.desc ? '<p class="item-desc">' + escapeHtml(it.desc) + '</p>' : '') +
+    '<div class="item-meta">' + meta + '</div></article>';
+}
+
+function renderZone(meta, items, ui){
+  var open = !!ui.openForms[meta.key];
+  var cardsHtml = items.length
+    ? items.map(function(it){ return renderItemCard(meta.key, it, ui.adminUnlocked); }).join('')
+    : '<p class="empty-note">아직 등록된 물품이 없어요.</p>';
+  var adminBar = ui.adminUnlocked
+    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="' + meta.key + '">' + (open ? '취소' : '+ 물품 등록') + '</button></div>' + (open ? renderItemForm(meta.key) : '')
+    : '';
+  return '<section class="zone zone-' + meta.key + '">' +
+    '<div class="zone-head"><div class="zone-title"><span class="zone-icon">' + ZONE_ICON[meta.key] + '</span><h2>' + escapeHtml(meta.label) + '</h2></div>' +
+    '<p class="zone-tagline">' + escapeHtml(meta.tagline) + '</p></div>' +
+    '<div class="zone-info"><div><span class="zone-info-label">품목</span><p>' + escapeHtml(meta.desc) + '</p></div>' +
+    '<div><span class="zone-info-label">이용 방법</span><p>' + escapeHtml(meta.method) + '</p></div></div>' +
+    adminBar +
+    '<div class="item-grid">' + cardsHtml + '</div>' +
+  '</section>';
+}
+
+function renderEventForm(ev, code){
+  return '<form class="item-form event-form" id="event-form">' +
+    fieldRowVal('date','일시', ev.date) + fieldRowVal('place','장소', ev.place) + fieldRowVal('audience','대상', ev.audience) +
+    '<label class="field field-wide"><span>취지</span><textarea name="purpose" rows="2">' + escapeHtml(ev.purpose) + '</textarea></label>' +
+    '<label class="field field-wide"><span>관리자 비밀번호 변경 (선택, 비워두면 유지)</span><input type="text" name="adminCode" placeholder="새 비밀번호"></label>' +
+    '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">저장</button></div>' +
+  '</form>';
+}
+
+function renderHero(state, ui){
+  var ev = state.event;
+  var editBtn = ui.adminUnlocked ? '<button type="button" class="btn btn-ghost btn-sm" data-action="toggle-event-edit">' + (ui.editingEvent ? '취소' : '행사 정보 수정') + '</button>' : '';
+  var editForm = (ui.adminUnlocked && ui.editingEvent) ? renderEventForm(ev, state.adminCode) : '';
+  return '<section class="hero">' +
+    '<div class="hero-text"><h1>안 쓰는 물건에 새 쓸모를, 한솔마켓에서 나눠요</h1><p>' + escapeHtml(ev.purpose) + '</p></div>' +
+    '<div class="hero-meta">' +
+      '<div class="meta-tile">' + ICON_CAL + '<div><span class="meta-label">일시</span><p>' + escapeHtml(ev.date) + '</p></div></div>' +
+      '<div class="meta-tile">' + ICON_PIN + '<div><span class="meta-label">장소</span><p>' + escapeHtml(ev.place) + '</p></div></div>' +
+      '<div class="meta-tile">' + ICON_PEOPLE + '<div><span class="meta-label">대상</span><p>' + escapeHtml(ev.audience) + '</p></div></div>' +
+    '</div>' +
+    (editBtn ? '<div class="hero-admin-row">' + editBtn + '</div>' : '') +
+    editForm +
+  '</section>';
+}
+
+function renderPasscodeModal(ui){
+  return '<div class="modal-backdrop" data-action="close-passcode"></div>' +
+    '<div class="modal" role="dialog" aria-modal="true">' +
+      '<h2>관리자 인증</h2><p>물품을 등록·삭제하려면 관리자 비밀번호를 입력하세요.</p>' +
+      '<form id="passcode-form">' +
+        '<input id="passcode-input" type="password" name="code" autocomplete="off" placeholder="비밀번호">' +
+        (ui.passcodeError ? '<p class="field-error">비밀번호가 올바르지 않아요.</p>' : '') +
+        '<div class="form-actions">' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-action="close-passcode">취소</button>' +
+          '<button type="submit" class="btn btn-primary btn-sm">확인</button>' +
+        '</div>' +
+      '</form>' +
+    '</div>';
+}
+
+function renderConfirmDeleteModal(ui, state){
+  var cd = ui.confirmDelete;
+  var item = (cd && state.zones[cd.zone]) ? state.zones[cd.zone].filter(function(it){ return it.id === cd.id; })[0] : null;
+  var name = item ? item.name : '이 물품';
+  return '<div class="modal-backdrop" data-action="cancel-delete"></div>' +
+    '<div class="modal" role="dialog" aria-modal="true">' +
+      '<h2>물품 삭제</h2><p>"' + escapeHtml(name) + '"을(를) 삭제할까요? 이 작업은 되돌릴 수 없어요.</p>' +
+      '<div class="form-actions">' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="cancel-delete">취소</button>' +
+        '<button type="button" class="btn btn-danger btn-sm" data-action="confirm-delete">삭제</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function renderZoneNavCard(meta, count){
+  return '<a href="#' + meta.key + '" class="zone-nav-card zone-nav-' + meta.key + '">' +
+    '<span class="zone-icon">' + ZONE_ICON[meta.key] + '</span>' +
+    '<h2>' + escapeHtml(meta.label) + '</h2>' +
+    '<p>' + escapeHtml(meta.tagline) + '</p>' +
+    '<span class="zone-nav-count">등록된 물품 ' + count + '개</span>' +
+    '<span class="zone-nav-cta">둘러보기 →</span>' +
+  '</a>';
+}
+
+function renderTradeNavCard(count){
+  return '<a href="#trade" class="zone-nav-card zone-nav-trade">' +
+    '<span class="zone-icon">' + ZONE_ICON.trade + '</span>' +
+    '<h2>물품 거래 창구</h2>' +
+    '<p>물품이 어떻게 거래됐는지 확인해보세요</p>' +
+    '<span class="zone-nav-count">거래 기록 ' + count + '건</span>' +
+    '<span class="zone-nav-cta">둘러보기 →</span>' +
+  '</a>';
+}
+
+function renderHome(state, ui){
+  return renderHero(state, ui) +
+    renderTempBoard(state) +
+    '<div class="zone-nav">' +
+      renderZoneNavCard(ZONE_META.free, state.zones.free.length) +
+      renderZoneNavCard(ZONE_META.used, state.zones.used.length) +
+      renderZoneNavCard(ZONE_META.auction, state.zones.auction.length) +
+      renderTradeNavCard(state.trades.length) +
+    '</div>' +
+    '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
+}
+
+function renderZonePage(key, state, ui){
+  return '<a href="#" class="back-link">← 홈으로</a>' +
+    renderZone(ZONE_META[key], state.zones[key], ui) +
+    '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
+}
+
+function renderTradeForm(){
+  var fields = fieldRow('name', '물품명 *', 'text', true) +
+    fieldRow('trader', '거래자 이름 *', 'text', true) +
+    fieldRowSelect('zone', '거래 유형', [['free','무료나눔'],['used','중고거래'],['auction','블라인드경매'],['etc','기타']]) +
+    fieldRow('method', '거래 방법 / 비고', 'text') +
+    fieldRow('price', '거래 금액 (원, 선택)', 'number') +
+    fieldRow('date', '거래일 (선택)', 'text');
+  return '<form class="item-form" id="form-trade" data-zone="trade">' + fields +
+    '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">등록하기</button></div></form>';
+}
+
+function renderTradeRow(t){
+  var zoneLabel = TRADE_ZONE_LABEL[t.zone] || '기타';
+  var priceHtml = t.price ? '<span class="chip">' + won(t.price) + '</span>' : '';
+  return '<article class="trade-card">' +
+    '<div class="trade-main"><h3>' + escapeHtml(t.name) + '</h3><p class="item-desc">' + escapeHtml(t.trader) + ' 님과 거래 · ' + escapeHtml(zoneLabel) + (t.method ? ' · ' + escapeHtml(t.method) : '') + '</p></div>' +
+    '<div class="trade-meta">' + priceHtml + (t.date ? '<span class="chip chip-soft">' + escapeHtml(t.date) + '</span>' : '') + '</div>' +
+  '</article>';
+}
+
+function renderTradeDeskPage(state, ui){
+  var trades = state.trades.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+  var open = !!ui.openForms.trade;
+  var adminBar = ui.adminUnlocked
+    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="trade">' + (open ? '취소' : '+ 거래 등록') + '</button></div>' + (open ? renderTradeForm() : '')
+    : '';
+  var rows = trades.length ? trades.map(renderTradeRow).join('') : '<p class="empty-note">아직 등록된 거래 기록이 없어요.</p>';
+  return '<a href="#" class="back-link">← 홈으로</a>' +
+    '<section class="zone zone-trade">' +
+      '<div class="zone-head"><div class="zone-title"><span class="zone-icon">' + ZONE_ICON.trade + '</span><h2>물품 거래 창구</h2></div>' +
+      '<p class="zone-tagline">물품이 실제로 어떻게 거래됐는지 확인해보세요</p></div>' +
+      '<div class="zone-info"><div><span class="zone-info-label">등록</span><p>관리자만 거래 내역을 등록할 수 있어요.</p></div>' +
+      '<div><span class="zone-info-label">온도</span><p>거래가 많을수록 그 사람의 매너 온도가 올라가요.</p></div></div>' +
+      adminBar +
+      '<div class="trade-list">' + rows + '</div>' +
+    '</section>' +
+    '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
+}
+
+function renderTempBoard(state){
+  var list = computeTemps(state).slice(0, 3);
+  var ranks = ['temp-rank-1','temp-rank-2','temp-rank-3'];
+  var body = list.length
+    ? list.map(function(p, idx){
+        return '<div class="temp-card ' + ranks[idx] + '">' +
+          '<span class="temp-rank">' + (idx + 1) + '</span>' +
+          '<div class="temp-info"><span class="temp-name">' + escapeHtml(p.name) + '</span><span class="temp-count">거래 ' + p.count + '건</span></div>' +
+          '<span class="temp-value">' + p.temp.toFixed(1) + '℃</span>' +
+        '</div>';
+      }).join('')
+    : '<p class="empty-note">아직 거래 창구에 등록된 기록이 없어요.</p>';
+  return '<section class="temp-board">' +
+    '<div class="temp-board-head">' + TEMP_ICON + '<div><h2>온도 랭킹 TOP 3</h2><p>물품을 많이 등록하거나 거래 창구에 거래가 많이 등록될수록 온도가 올라가요</p></div></div>' +
+    '<div class="temp-list">' + body + '</div>' +
+  '</section>';
+}
+
+function renderApp(state, ui){
+  var pageHtml = ui.page === 'trade'
+    ? renderTradeDeskPage(state, ui)
+    : (ZONE_META[ui.page] ? renderZonePage(ui.page, state, ui) : renderHome(state, ui));
+  return '<header class="topbar"><div class="topbar-inner">' +
+      '<div class="brand">' + SUNFLOWER_SVG + '<div class="brand-text"><span class="brand-name">한솔마켓</span><span class="brand-sub">제주동여자중학교</span></div></div>' +
+      '<button type="button" class="admin-pill' + (ui.adminUnlocked ? ' is-on' : '') + '" data-action="toggle-admin">' + (ui.adminUnlocked ? '관리자 모드 · ON' : '관리자 모드') + '</button>' +
+    '</div></header>' +
+    '<main class="wrap">' + pageHtml + '</main>' +
+    (ui.showPasscode ? renderPasscodeModal(ui) : '') +
+    (ui.confirmDelete ? renderConfirmDeleteModal(ui, state) : '');
+}
+
+function parseHash(){
+  var h = (location.hash || '').slice(1);
+  if(h === 'trade') return 'trade';
+  return ZONE_META[h] ? h : 'home';
+}
+ui.page = parseHash();
+
+function rerender(){
+  if(!appState) return;
+  document.getElementById('root').innerHTML = renderApp(appState, ui);
+}
+
+var writing = false;
+function commit(newState){
+  appState = newState;
+  ui.openForms = {};
+  ui.pendingImage = {};
+  ui.editingEvent = false;
+  rerender();
+  writing = true;
+  set(stateRef, newState).then(function(){
+    writing = false;
+    toast('저장되었습니다. 모두에게 반영돼요.');
+  }).catch(function(err){
+    writing = false;
+    toast('저장에 실패했어요. 관리자 비밀번호를 확인해주세요.');
+  });
+}
+
+function processImage(file, callback){
+  var reader = new FileReader();
+  reader.onload = function(){
+    var img = new Image();
+    img.onload = function(){
+      var maxDim = 480;
+      var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      var w = Math.max(1, Math.round(img.width * scale));
+      var h = Math.max(1, Math.round(img.height * scale));
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      var dataUrl = null;
+      try{ dataUrl = canvas.toDataURL('image/jpeg', 0.72); }catch(err){ dataUrl = null; }
+      callback(dataUrl);
+    };
+    img.onerror = function(){ callback(null); };
+    img.src = reader.result;
+  };
+  reader.onerror = function(){ callback(null); };
+  reader.readAsDataURL(file);
+}
+
+function onChange(e){
+  var input = e.target;
+  if(!input.classList || !input.classList.contains('photo-input')) return;
+  var zone = input.getAttribute('data-zone');
+  var file = input.files && input.files[0];
+  if(!file) return;
+  if(!/^image\//.test(file.type)){
+    toast('이미지 파일만 선택할 수 있어요.');
+    input.value = '';
+    return;
+  }
+  processImage(file, function(dataUrl){
+    if(!dataUrl){
+      toast('사진을 처리하지 못했어요. 다른 사진으로 시도해주세요.');
+      return;
+    }
+    ui.pendingImage[zone] = dataUrl;
+    var preview = document.getElementById('preview-' + zone);
+    if(preview){ preview.src = dataUrl; preview.hidden = false; }
+    var clearBtn = document.querySelector('.photo-clear[data-zone="' + zone + '"]');
+    if(clearBtn) clearBtn.hidden = false;
+  });
+}
+
+function onClick(e){
+  var t = e.target.closest('[data-action]');
+  if(!t) return;
+  var action = t.getAttribute('data-action');
+
+  if(action === 'toggle-admin'){
+    if(ui.adminUnlocked){
+      ui.adminUnlocked = false;
+      try{ sessionStorage.removeItem(SS_KEY); }catch(err){}
+      rerender();
+    } else {
+      ui.showPasscode = true;
+      ui.passcodeError = false;
+      rerender();
+      setTimeout(function(){ var el = document.getElementById('passcode-input'); if(el) el.focus(); }, 0);
+    }
+    return;
+  }
+  if(action === 'close-passcode'){
+    ui.showPasscode = false;
+    ui.passcodeError = false;
+    rerender();
+    return;
+  }
+  if(action === 'toggle-form'){
+    var z = t.getAttribute('data-zone');
+    ui.openForms[z] = !ui.openForms[z];
+    ui.pendingImage[z] = null;
+    rerender();
+    if(ui.openForms[z]){
+      setTimeout(function(){ var el = document.querySelector('#form-' + z + ' input[name="name"]'); if(el) el.focus(); }, 0);
+    }
+    return;
+  }
+  if(action === 'clear-photo'){
+    var pz = t.getAttribute('data-zone');
+    ui.pendingImage[pz] = null;
+    var preview = document.getElementById('preview-' + pz);
+    if(preview){ preview.hidden = true; preview.src = ''; }
+    var fileInput = document.querySelector('.photo-input[data-zone="' + pz + '"]');
+    if(fileInput) fileInput.value = '';
+    t.hidden = true;
+    return;
+  }
+  if(action === 'toggle-event-edit'){
+    ui.editingEvent = !ui.editingEvent;
+    rerender();
+    return;
+  }
+  if(action === 'delete-item'){
+    var zone = t.getAttribute('data-zone'), id = t.getAttribute('data-id');
+    ui.confirmDelete = { zone: zone, id: id };
+    rerender();
+    return;
+  }
+  if(action === 'cancel-delete'){
+    ui.confirmDelete = null;
+    rerender();
+    return;
+  }
+  if(action === 'confirm-delete'){
+    var cd = ui.confirmDelete;
+    ui.confirmDelete = null;
+    if(!cd) return;
+    var newState = clone(appState);
+    newState.zones[cd.zone] = newState.zones[cd.zone].filter(function(it){ return it.id !== cd.id; });
+    commit(newState);
+    return;
+  }
+}
+
+function onSubmit(e){
+  var form = e.target;
+  if(form.id === 'passcode-form'){
+    e.preventDefault();
+    var val = (new FormData(form)).get('code');
+    val = (val || '').toString().trim();
+    if(val && val === appState.adminCode){
+      ui.adminUnlocked = true;
+      ui.showPasscode = false;
+      ui.passcodeError = false;
+      try{ sessionStorage.setItem(SS_KEY, '1'); }catch(err){}
+      rerender();
+      toast('관리자 모드가 활성화되었습니다.');
+    } else {
+      ui.passcodeError = true;
+      rerender();
+    }
+    return;
+  }
+  if(form.id === 'form-trade'){
+    e.preventDefault();
+    var fdT = new FormData(form);
+    var tName = (fdT.get('name') || '').toString().trim();
+    var tTrader = (fdT.get('trader') || '').toString().trim();
+    if(!tName || !tTrader) return;
+    var trade = {
+      id: uid(),
+      name: tName,
+      trader: tTrader,
+      zone: (fdT.get('zone') || 'etc').toString(),
+      method: (fdT.get('method') || '').toString().trim(),
+      price: Number(fdT.get('price') || 0),
+      date: (fdT.get('date') || '').toString().trim(),
+      createdAt: Date.now()
+    };
+    var newStateT = clone(appState);
+    newStateT.trades = newStateT.trades.concat([trade]);
+    commit(newStateT);
+    return;
+  }
+  if(form.classList.contains('item-form') && form.hasAttribute('data-zone') && form.getAttribute('data-zone') !== 'trade'){
+    e.preventDefault();
+    var zone = form.getAttribute('data-zone');
+    var fd = new FormData(form);
+    var name = (fd.get('name') || '').toString().trim();
+    if(!name) return;
+    var item = { id: uid(), name: name, desc: (fd.get('desc') || '').toString().trim() };
+    if(ui.pendingImage[zone]) item.image = ui.pendingImage[zone];
+    if(zone === 'free'){
+      item.donor = (fd.get('donor') || '').toString().trim();
+      item.limit = (fd.get('limit') || '').toString().trim();
+    } else if(zone === 'used'){
+      item.price = Number(fd.get('price') || 0);
+      item.seller = (fd.get('seller') || '').toString().trim();
+    } else if(zone === 'auction'){
+      item.startPrice = Number(fd.get('startPrice') || 0);
+      item.deadline = (fd.get('deadline') || '').toString().trim();
+      item.registrant = (fd.get('registrant') || '').toString().trim();
+    }
+    var newState = clone(appState);
+    newState.zones[zone] = newState.zones[zone].concat([item]);
+    commit(newState);
+    return;
+  }
+  if(form.id === 'event-form'){
+    e.preventDefault();
+    var fd2 = new FormData(form);
+    var newState2 = clone(appState);
+    newState2.event = {
+      date: (fd2.get('date') || '').toString().trim(),
+      place: (fd2.get('place') || '').toString().trim(),
+      audience: (fd2.get('audience') || '').toString().trim(),
+      purpose: (fd2.get('purpose') || '').toString().trim()
+    };
+    var newCode = (fd2.get('adminCode') || '').toString().trim();
+    if(newCode) newState2.adminCode = newCode;
+    commit(newState2);
+    return;
+  }
+}
+
+document.addEventListener('click', onClick);
+document.addEventListener('submit', onSubmit);
+document.addEventListener('change', onChange);
+window.addEventListener('hashchange', function(){
+  ui.page = parseHash();
+  ui.openForms = {};
+  ui.pendingImage = {};
+  ui.editingEvent = false;
+  ui.confirmDelete = null;
+  rerender();
+  window.scrollTo(0, 0);
+});
+
+onValue(stateRef, function(snapshot){
+  var val = snapshot.val();
+  if(val){
+    appState = val;
+    rerender();
+  } else if(!writing){
+    set(stateRef, DEFAULT_STATE);
+  }
+}, function(err){
+  document.getElementById('root').innerHTML = '<p class="loading-note">데이터를 불러오지 못했어요. Firebase 설정 또는 규칙을 확인해주세요.</p>';
+});
+</script>
+</body>
+</html>
