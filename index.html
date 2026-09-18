@@ -122,7 +122,12 @@ button{font-family:inherit}
 .meta-tile p{font-size:14px;font-weight:500;margin-top:2px}
 .hero-admin-row{display:flex;justify-content:flex-end;margin-top:4px}
 
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .zone-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:16px}
+.zone-nav.zone-nav-2x2{grid-template-columns:repeat(2,1fr)}
+@media (max-width:860px){
+  .home-grid{grid-template-columns:1fr}
+}
 .zone-nav-card{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:var(--radius-lg);border:1px solid var(--border);border-top-width:4px;background:var(--surface);box-shadow:var(--shadow);text-decoration:none;color:var(--ink);transition:transform .15s}
 .zone-nav-card:hover{transform:translateY(-3px)}
 .zone-nav-card .zone-icon{width:34px;height:34px;border-radius:11px;margin-bottom:0}
@@ -632,16 +637,19 @@ function renderTradeNavCard(count, enabled){
 }
 
 function renderHome(state, ui){
-  return renderHero(state, ui) +
-    renderTempBoard(state) +
-    '<p class="home-notice">10월 7일 행사 전까지 아래의 섹션별 물품을 미리 보고 마음에 드는 물품에는 하트를 눌러주세요~!</p>' +
-    '<div class="zone-nav">' +
-      renderZoneNavCard(ZONE_META.free, state.zones.free.length) +
-      renderZoneNavCard(ZONE_META.used, state.zones.used.length) +
-      renderZoneNavCard(ZONE_META.auction, state.zones.auction.length) +
-      renderTradeNavCard(state.trades.length, state.tradeDeskEnabled) +
+  return '<div class="home-grid">' +
+    '<div class="home-col-left">' + renderHero(state, ui) + renderTempBoard(state) + '</div>' +
+    '<div class="home-col-right">' +
+      '<p class="home-notice">10월 7일 행사 전까지 아래의 섹션별 물품을 미리 보고 마음에 드는 물품에는 하트를 눌러주세요~!</p>' +
+      '<div class="zone-nav zone-nav-2x2">' +
+        renderZoneNavCard(ZONE_META.free, state.zones.free.length) +
+        renderZoneNavCard(ZONE_META.used, state.zones.used.length) +
+        renderZoneNavCard(ZONE_META.auction, state.zones.auction.length) +
+        renderTradeNavCard(state.trades.length, state.tradeDeskEnabled) +
+      '</div>' +
     '</div>' +
-    '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
+  '</div>' +
+  '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
 }
 
 function renderZonePage(key, state, ui){
