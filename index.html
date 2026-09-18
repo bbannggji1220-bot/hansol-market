@@ -830,10 +830,26 @@ window.addEventListener('hashchange', function(){
   window.scrollTo(0, 0);
 });
 
+function normalizeState(val){
+  val = val || {};
+  val.event = val.event || {};
+  val.event.date = val.event.date || '';
+  val.event.place = val.event.place || '';
+  val.event.audience = val.event.audience || '';
+  val.event.purpose = val.event.purpose || '';
+  val.adminCode = val.adminCode || '1007';
+  val.zones = val.zones || {};
+  val.zones.free = val.zones.free || [];
+  val.zones.used = val.zones.used || [];
+  val.zones.auction = val.zones.auction || [];
+  val.trades = val.trades || [];
+  return val;
+}
+
 onValue(stateRef, function(snapshot){
   var val = snapshot.val();
   if(val){
-    appState = val;
+    appState = normalizeState(val);
     rerender();
   } else if(!writing){
     set(stateRef, DEFAULT_STATE);
