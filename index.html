@@ -238,6 +238,13 @@ button{font-family:inherit}
 .trade-main h3{font-size:15px;font-weight:700;font-family:var(--font-body)}
 .trade-main .item-desc{margin-top:4px}
 .trade-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.trade-admin{display:flex;gap:6px;align-items:center;flex:none}
+.trade-del{
+  width:22px;height:22px;border-radius:50%;flex:none;
+  border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
+  font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.trade-del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
 
 .footer{text-align:center;padding:30px 0 6px;color:var(--ink-soft);font-family:var(--font-display);font-size:16px}
 
@@ -316,7 +323,7 @@ var TEMP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
-var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null };
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null };
 try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
 
 function escapeHtml(s){
@@ -342,11 +349,13 @@ function fieldRow(name, label, type, required){
   return '<label class="field"><span>' + label + '</span><input type="' + type + '" name="' + name + '"' +
     (required ? ' required' : '') + (type === 'number' ? ' min="0" step="100"' : '') + '></label>';
 }
-function fieldRowVal(name, label, val){
-  return '<label class="field"><span>' + label + '</span><input type="text" name="' + name + '" value="' + escapeHtml(val) + '"></label>';
+function fieldRowVal(name, label, val, type, required){
+  type = type || 'text';
+  return '<label class="field"><span>' + label + '</span><input type="' + type + '" name="' + name + '" value="' + escapeHtml(val) +
+    '"' + (required ? ' required' : '') + (type === 'number' ? ' min="0" step="100"' : '') + '></label>';
 }
-function fieldRowSelect(name, label, options){
-  var opts = options.map(function(o){ return '<option value="' + o[0] + '">' + escapeHtml(o[1]) + '</option>'; }).join('');
+function fieldRowSelect(name, label, options, selected){
+  var opts = options.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === selected ? ' selected' : '') + '>' + escapeHtml(o[1]) + '</option>'; }).join('');
   return '<label class="field"><span>' + label + '</span><select name="' + name + '">' + opts + '</select></label>';
 }
 
@@ -468,11 +477,20 @@ function renderPasscodeModal(ui){
 
 function renderConfirmDeleteModal(ui, state){
   var cd = ui.confirmDelete;
-  var item = (cd && state.zones[cd.zone]) ? state.zones[cd.zone].filter(function(it){ return it.id === cd.id; })[0] : null;
-  var name = item ? item.name : '이 물품';
+  var name = cd && cd.kind === 'trade' ? '이 거래 기록' : '이 물품';
+  var title = cd && cd.kind === 'trade' ? '거래 기록 삭제' : '물품 삭제';
+  if(cd){
+    if(cd.kind === 'trade'){
+      var tr = state.trades.filter(function(t){ return t.id === cd.id; })[0];
+      if(tr) name = tr.name;
+    } else {
+      var item = state.zones[cd.zone] ? state.zones[cd.zone].filter(function(it){ return it.id === cd.id; })[0] : null;
+      if(item) name = item.name;
+    }
+  }
   return '<div class="modal-backdrop" data-action="cancel-delete"></div>' +
     '<div class="modal" role="dialog" aria-modal="true">' +
-      '<h2>물품 삭제</h2><p>"' + escapeHtml(name) + '"을(를) 삭제할까요? 이 작업은 되돌릴 수 없어요.</p>' +
+      '<h2>' + title + '</h2><p>"' + escapeHtml(name) + '"을(를) 삭제할까요? 이 작업은 되돌릴 수 없어요.</p>' +
       '<div class="form-actions">' +
         '<button type="button" class="btn btn-ghost btn-sm" data-action="cancel-delete">취소</button>' +
         '<button type="button" class="btn btn-danger btn-sm" data-action="confirm-delete">삭제</button>' +
@@ -518,33 +536,38 @@ function renderZonePage(key, state, ui){
     '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
 }
 
-function renderTradeForm(){
-  var fields = fieldRow('name', '물품명 *', 'text', true) +
-    fieldRow('trader', '거래자 이름 *', 'text', true) +
-    fieldRowSelect('zone', '거래 유형', [['free','무료나눔'],['used','중고거래'],['auction','블라인드경매'],['etc','기타']]) +
-    fieldRow('method', '거래 방법 / 비고', 'text') +
-    fieldRow('price', '거래 금액 (원, 선택)', 'number') +
-    fieldRow('date', '거래일 (선택)', 'text');
+function renderTradeForm(t){
+  var fields = fieldRowVal('name', '물품명 *', t ? t.name : '', 'text', true) +
+    fieldRowVal('trader', '거래자 이름 *', t ? t.trader : '', 'text', true) +
+    fieldRowSelect('zone', '거래 유형', [['free','무료나눔'],['used','중고거래'],['auction','블라인드경매'],['etc','기타']], t ? t.zone : null) +
+    fieldRowVal('method', '거래 방법 / 비고', t ? t.method : '') +
+    fieldRowVal('price', '거래 금액 (원, 선택)', t && t.price ? t.price : '', 'number') +
+    fieldRowVal('date', '거래일 (선택)', t ? t.date : '');
   return '<form class="item-form" id="form-trade" data-zone="trade">' + fields +
-    '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">등록하기</button></div></form>';
+    '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">' + (t ? '저장' : '등록하기') + '</button></div></form>';
 }
 
-function renderTradeRow(t){
+function renderTradeRow(t, adminUnlocked){
   var zoneLabel = TRADE_ZONE_LABEL[t.zone] || '기타';
   var priceHtml = t.price ? '<span class="chip">' + won(t.price) + '</span>' : '';
+  var adminBtns = adminUnlocked
+    ? '<div class="trade-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="edit-trade" data-id="' + t.id + '">수정</button><button type="button" class="trade-del" data-action="delete-trade" data-id="' + t.id + '" aria-label="삭제">×</button></div>'
+    : '';
   return '<article class="trade-card">' +
     '<div class="trade-main"><h3>' + escapeHtml(t.name) + '</h3><p class="item-desc">' + escapeHtml(t.trader) + ' 님과 거래 · ' + escapeHtml(zoneLabel) + (t.method ? ' · ' + escapeHtml(t.method) : '') + '</p></div>' +
     '<div class="trade-meta">' + priceHtml + (t.date ? '<span class="chip chip-soft">' + escapeHtml(t.date) + '</span>' : '') + '</div>' +
+    adminBtns +
   '</article>';
 }
 
 function renderTradeDeskPage(state, ui){
   var trades = state.trades.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
   var open = !!ui.openForms.trade;
+  var editingObj = ui.editingTrade ? state.trades.filter(function(t){ return t.id === ui.editingTrade; })[0] : null;
   var adminBar = ui.adminUnlocked
-    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="trade">' + (open ? '취소' : '+ 거래 등록') + '</button></div>' + (open ? renderTradeForm() : '')
+    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="trade">' + (open ? '취소' : '+ 거래 등록') + '</button></div>' + (open ? renderTradeForm(editingObj) : '')
     : '';
-  var rows = trades.length ? trades.map(renderTradeRow).join('') : '<p class="empty-note">아직 등록된 거래 기록이 없어요.</p>';
+  var rows = trades.length ? trades.map(function(t){ return renderTradeRow(t, ui.adminUnlocked); }).join('') : '<p class="empty-note">아직 등록된 거래 기록이 없어요.</p>';
   return '<a href="#" class="back-link">← 홈으로</a>' +
     '<section class="zone zone-trade">' +
       '<div class="zone-head"><div class="zone-title"><span class="zone-icon">' + ZONE_ICON.trade + '</span><h2>물품 거래 창구</h2></div>' +
@@ -606,6 +629,7 @@ function commit(newState){
   ui.openForms = {};
   ui.pendingImage = {};
   ui.editingEvent = false;
+  ui.editingTrade = null;
   rerender();
   writing = true;
   set(stateRef, newState).then(function(){
@@ -693,10 +717,25 @@ function onClick(e){
     var z = t.getAttribute('data-zone');
     ui.openForms[z] = !ui.openForms[z];
     ui.pendingImage[z] = null;
+    if(z === 'trade') ui.editingTrade = null;
     rerender();
     if(ui.openForms[z]){
       setTimeout(function(){ var el = document.querySelector('#form-' + z + ' input[name="name"]'); if(el) el.focus(); }, 0);
     }
+    return;
+  }
+  if(action === 'edit-trade'){
+    var eid = t.getAttribute('data-id');
+    ui.openForms.trade = true;
+    ui.editingTrade = eid;
+    rerender();
+    setTimeout(function(){ var el = document.querySelector('#form-trade input[name="name"]'); if(el) el.focus(); }, 0);
+    return;
+  }
+  if(action === 'delete-trade'){
+    var did = t.getAttribute('data-id');
+    ui.confirmDelete = { kind: 'trade', id: did };
+    rerender();
     return;
   }
   if(action === 'clear-photo'){
@@ -716,7 +755,7 @@ function onClick(e){
   }
   if(action === 'delete-item'){
     var zone = t.getAttribute('data-zone'), id = t.getAttribute('data-id');
-    ui.confirmDelete = { zone: zone, id: id };
+    ui.confirmDelete = { kind: 'item', zone: zone, id: id };
     rerender();
     return;
   }
@@ -730,7 +769,11 @@ function onClick(e){
     ui.confirmDelete = null;
     if(!cd) return;
     var newState = clone(appState);
-    newState.zones[cd.zone] = newState.zones[cd.zone].filter(function(it){ return it.id !== cd.id; });
+    if(cd.kind === 'trade'){
+      newState.trades = newState.trades.filter(function(tr){ return tr.id !== cd.id; });
+    } else {
+      newState.zones[cd.zone] = newState.zones[cd.zone].filter(function(it){ return it.id !== cd.id; });
+    }
     commit(newState);
     return;
   }
@@ -761,18 +804,34 @@ function onSubmit(e){
     var tName = (fdT.get('name') || '').toString().trim();
     var tTrader = (fdT.get('trader') || '').toString().trim();
     if(!tName || !tTrader) return;
-    var trade = {
-      id: uid(),
+    var tradeData = {
       name: tName,
       trader: tTrader,
       zone: (fdT.get('zone') || 'etc').toString(),
       method: (fdT.get('method') || '').toString().trim(),
       price: Number(fdT.get('price') || 0),
-      date: (fdT.get('date') || '').toString().trim(),
-      createdAt: Date.now()
+      date: (fdT.get('date') || '').toString().trim()
     };
     var newStateT = clone(appState);
-    newStateT.trades = newStateT.trades.concat([trade]);
+    if(ui.editingTrade){
+      var idx = -1;
+      for(var i = 0; i < newStateT.trades.length; i++){
+        if(newStateT.trades[i].id === ui.editingTrade){ idx = i; break; }
+      }
+      if(idx > -1){
+        tradeData.id = newStateT.trades[idx].id;
+        tradeData.createdAt = newStateT.trades[idx].createdAt;
+        newStateT.trades[idx] = tradeData;
+      } else {
+        tradeData.id = uid();
+        tradeData.createdAt = Date.now();
+        newStateT.trades = newStateT.trades.concat([tradeData]);
+      }
+    } else {
+      tradeData.id = uid();
+      tradeData.createdAt = Date.now();
+      newStateT.trades = newStateT.trades.concat([tradeData]);
+    }
     commit(newStateT);
     return;
   }
@@ -826,6 +885,7 @@ window.addEventListener('hashchange', function(){
   ui.pendingImage = {};
   ui.editingEvent = false;
   ui.confirmDelete = null;
+  ui.editingTrade = null;
   rerender();
   window.scrollTo(0, 0);
 });
