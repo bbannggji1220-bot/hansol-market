@@ -217,7 +217,7 @@ button{font-family:inherit}
 .zone-free .item-photo-empty{background:var(--free-bg);color:var(--free)}
 .zone-used .item-photo-empty{background:var(--used-bg);color:var(--used)}
 .zone-auction .item-photo-empty{background:var(--auction-bg);color:var(--auction)}
-.item-card h3{font-size:15.5px;font-family:var(--font-body);font-weight:700;padding-right:20px}
+.item-card h3{font-size:15.5px;font-family:var(--font-body);font-weight:700;padding-right:66px}
 .item-desc{margin-top:6px;font-size:13px;color:var(--ink-soft)}
 .item-meta{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .price{font-variant-numeric:tabular-nums;font-weight:900;font-size:15px}
@@ -225,8 +225,11 @@ button{font-family:inherit}
 .zone-auction .price{color:var(--auction)}
 .chip{font-size:11.5px;font-weight:700;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px 9px;color:var(--ink)}
 .chip-soft{color:var(--ink-soft);font-weight:500}
+.card-admin-btns{position:absolute;top:10px;right:10px;display:flex;gap:6px;align-items:center}
+.card-edit{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);cursor:pointer;flex:none}
+.card-edit:hover{border-color:var(--accent);color:var(--accent)}
 .card-del{
-  position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;
+  width:22px;height:22px;border-radius:50%;flex:none;
   border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
   font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
 }
@@ -323,7 +326,7 @@ var TEMP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
-var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null };
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null };
 try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
 
 function escapeHtml(s){
@@ -345,10 +348,6 @@ function toast(msg){
   toastTimer = setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.hidden = true; }, 200); }, 3000);
 }
 
-function fieldRow(name, label, type, required){
-  return '<label class="field"><span>' + label + '</span><input type="' + type + '" name="' + name + '"' +
-    (required ? ' required' : '') + (type === 'number' ? ' min="0" step="100"' : '') + '></label>';
-}
 function fieldRowVal(name, label, val, type, required){
   type = type || 'text';
   return '<label class="field"><span>' + label + '</span><input type="' + type + '" name="' + name + '" value="' + escapeHtml(val) +
@@ -377,22 +376,23 @@ function computeTemps(state){
   return list;
 }
 
-function renderItemForm(zone){
+function renderItemForm(zone, it, currentImage){
   var fields = '';
   if(zone === 'free'){
-    fields = fieldRow('name','품목명 *','text',true) + fieldRow('desc','설명','text') + fieldRow('donor','기증자 (입력하면 온도에 반영돼요)','text') + fieldRow('limit','1인당 제한 (예: 최대 3점)','text');
+    fields = fieldRowVal('name','품목명 *', it?it.name:'', 'text', true) + fieldRowVal('desc','설명', it?it.desc:'') + fieldRowVal('donor','기증자 (입력하면 온도에 반영돼요)', it?it.donor:'') + fieldRowVal('limit','1인당 제한 (예: 최대 3점)', it?it.limit:'');
   } else if(zone === 'used'){
-    fields = fieldRow('name','품목명 *','text',true) + fieldRow('desc','설명','text') + fieldRow('price','희망 가격 (원) *','number',true) + fieldRow('seller','판매자 이름 (입력하면 온도에 반영돼요)','text');
+    fields = fieldRowVal('name','품목명 *', it?it.name:'', 'text', true) + fieldRowVal('desc','설명', it?it.desc:'') + fieldRowVal('price','희망 가격 (원) *', it&&it.price?it.price:'', 'number', true) + fieldRowVal('seller','판매자 이름 (입력하면 온도에 반영돼요)', it?it.seller:'');
   } else {
-    fields = fieldRow('name','품목명 *','text',true) + fieldRow('desc','설명','text') + fieldRow('startPrice','시작가 (원) *','number',true) + fieldRow('deadline','입찰 마감 안내','text') + fieldRow('registrant','출품자 (입력하면 온도에 반영돼요)','text');
+    fields = fieldRowVal('name','품목명 *', it?it.name:'', 'text', true) + fieldRowVal('desc','설명', it?it.desc:'') + fieldRowVal('startPrice','시작가 (원) *', it&&it.startPrice?it.startPrice:'', 'number', true) + fieldRowVal('deadline','입찰 마감 안내', it?it.deadline:'') + fieldRowVal('registrant','출품자 (입력하면 온도에 반영돼요)', it?it.registrant:'');
   }
+  var hasImage = !!currentImage;
   var photoField = '<div class="photo-field"><span>사진 (선택, 카드에 작게 표시돼요)</span><div class="photo-row">' +
-    '<img class="photo-preview" id="preview-' + zone + '" hidden>' +
+    '<img class="photo-preview" id="preview-' + zone + '"' + (hasImage ? ' src="' + escapeHtml(currentImage) + '"' : ' hidden') + '>' +
     '<label class="btn btn-ghost btn-sm file-btn">사진 선택<input type="file" accept="image/*" class="photo-input" data-zone="' + zone + '" hidden></label>' +
-    '<button type="button" class="btn btn-ghost btn-sm photo-clear" data-action="clear-photo" data-zone="' + zone + '" hidden>제거</button>' +
+    '<button type="button" class="btn btn-ghost btn-sm photo-clear" data-action="clear-photo" data-zone="' + zone + '"' + (hasImage ? '' : ' hidden') + '>제거</button>' +
   '</div></div>';
   return '<form class="item-form" id="form-' + zone + '" data-zone="' + zone + '">' + fields + photoField +
-    '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">등록하기</button></div></form>';
+    '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">' + (it ? '저장' : '등록하기') + '</button></div></form>';
 }
 
 function renderItemCard(zone, it, adminUnlocked){
@@ -408,22 +408,28 @@ function renderItemCard(zone, it, adminUnlocked){
            (it.deadline ? '<span class="chip chip-soft">' + escapeHtml(it.deadline) + '</span>' : '') +
            (it.registrant ? '<span class="chip chip-soft">출품: ' + escapeHtml(it.registrant) + '</span>' : '');
   }
-  var delBtn = adminUnlocked ? '<button type="button" class="card-del" data-action="delete-item" data-zone="' + zone + '" data-id="' + it.id + '" aria-label="삭제">×</button>' : '';
+  var adminBtns = adminUnlocked
+    ? '<div class="card-admin-btns">' +
+        '<button type="button" class="card-edit" data-action="edit-item" data-zone="' + zone + '" data-id="' + it.id + '">수정</button>' +
+        '<button type="button" class="card-del" data-action="delete-item" data-zone="' + zone + '" data-id="' + it.id + '" aria-label="삭제">×</button>' +
+      '</div>'
+    : '';
   var photoHtml = it.image
     ? '<img class="item-photo" src="' + escapeHtml(it.image) + '" alt="">'
     : '<div class="item-photo item-photo-empty">' + ZONE_ICON[zone] + '</div>';
-  return '<article class="item-card">' + delBtn + photoHtml + '<h3>' + escapeHtml(it.name) + '</h3>' +
+  return '<article class="item-card">' + adminBtns + photoHtml + '<h3>' + escapeHtml(it.name) + '</h3>' +
     (it.desc ? '<p class="item-desc">' + escapeHtml(it.desc) + '</p>' : '') +
     '<div class="item-meta">' + meta + '</div></article>';
 }
 
 function renderZone(meta, items, ui){
   var open = !!ui.openForms[meta.key];
+  var editingObj = ui.editingItem ? items.filter(function(it){ return it.id === ui.editingItem; })[0] : null;
   var cardsHtml = items.length
     ? items.map(function(it){ return renderItemCard(meta.key, it, ui.adminUnlocked); }).join('')
     : '<p class="empty-note">아직 등록된 물품이 없어요.</p>';
   var adminBar = ui.adminUnlocked
-    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="' + meta.key + '">' + (open ? '취소' : '+ 물품 등록') + '</button></div>' + (open ? renderItemForm(meta.key) : '')
+    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="' + meta.key + '">' + (open ? '취소' : '+ 물품 등록') + '</button></div>' + (open ? renderItemForm(meta.key, editingObj, ui.pendingImage[meta.key]) : '')
     : '';
   return '<section class="zone zone-' + meta.key + '">' +
     '<div class="zone-head"><div class="zone-title"><span class="zone-icon">' + ZONE_ICON[meta.key] + '</span><h2>' + escapeHtml(meta.label) + '</h2></div>' +
@@ -630,6 +636,7 @@ function commit(newState){
   ui.pendingImage = {};
   ui.editingEvent = false;
   ui.editingTrade = null;
+  ui.editingItem = null;
   rerender();
   writing = true;
   set(stateRef, newState).then(function(){
@@ -717,11 +724,22 @@ function onClick(e){
     var z = t.getAttribute('data-zone');
     ui.openForms[z] = !ui.openForms[z];
     ui.pendingImage[z] = null;
+    ui.editingItem = null;
     if(z === 'trade') ui.editingTrade = null;
     rerender();
     if(ui.openForms[z]){
       setTimeout(function(){ var el = document.querySelector('#form-' + z + ' input[name="name"]'); if(el) el.focus(); }, 0);
     }
+    return;
+  }
+  if(action === 'edit-item'){
+    var ez = t.getAttribute('data-zone'), eid2 = t.getAttribute('data-id');
+    var found = appState.zones[ez] ? appState.zones[ez].filter(function(x){ return x.id === eid2; })[0] : null;
+    ui.openForms[ez] = true;
+    ui.editingItem = eid2;
+    ui.pendingImage[ez] = found && found.image ? found.image : null;
+    rerender();
+    setTimeout(function(){ var el = document.querySelector('#form-' + ez + ' input[name="name"]'); if(el) el.focus(); }, 0);
     return;
   }
   if(action === 'edit-trade'){
@@ -841,7 +859,7 @@ function onSubmit(e){
     var fd = new FormData(form);
     var name = (fd.get('name') || '').toString().trim();
     if(!name) return;
-    var item = { id: uid(), name: name, desc: (fd.get('desc') || '').toString().trim() };
+    var item = { name: name, desc: (fd.get('desc') || '').toString().trim() };
     if(ui.pendingImage[zone]) item.image = ui.pendingImage[zone];
     if(zone === 'free'){
       item.donor = (fd.get('donor') || '').toString().trim();
@@ -855,7 +873,22 @@ function onSubmit(e){
       item.registrant = (fd.get('registrant') || '').toString().trim();
     }
     var newState = clone(appState);
-    newState.zones[zone] = newState.zones[zone].concat([item]);
+    if(ui.editingItem){
+      var idx = -1;
+      for(var j = 0; j < newState.zones[zone].length; j++){
+        if(newState.zones[zone][j].id === ui.editingItem){ idx = j; break; }
+      }
+      if(idx > -1){
+        item.id = newState.zones[zone][idx].id;
+        newState.zones[zone][idx] = item;
+      } else {
+        item.id = uid();
+        newState.zones[zone] = newState.zones[zone].concat([item]);
+      }
+    } else {
+      item.id = uid();
+      newState.zones[zone] = newState.zones[zone].concat([item]);
+    }
     commit(newState);
     return;
   }
@@ -886,6 +919,7 @@ window.addEventListener('hashchange', function(){
   ui.editingEvent = false;
   ui.confirmDelete = null;
   ui.editingTrade = null;
+  ui.editingItem = null;
   rerender();
   window.scrollTo(0, 0);
 });
