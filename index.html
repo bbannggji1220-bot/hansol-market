@@ -236,6 +236,13 @@ button{font-family:inherit}
 .card-del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
 .empty-note{color:var(--ink-soft);font-size:13.5px;padding:10px 2px}
 
+.bid-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.bid-form{margin-top:10px}
+.bid-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.bid-item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px}
+.bid-item-top{border-color:var(--auction);background:var(--auction-bg)}
+.bid-item .price{font-weight:900;font-variant-numeric:tabular-nums;font-size:13px}
+
 .trade-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 .trade-card{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;flex-wrap:wrap}
 .trade-main h3{font-size:15px;font-weight:700;font-family:var(--font-body)}
@@ -300,6 +307,8 @@ var firebaseConfig = {
 var fbApp = initializeApp(firebaseConfig);
 var db = getDatabase(fbApp);
 var stateRef = ref(db, 'hansol');
+var bidsRef = ref(db, 'hansolBids');
+var bidsData = {};
 
 var DEFAULT_STATE = {"event":{"date":"10월 7일 수요일 15:30~","place":"도서관","audience":"교내 전 교직원","purpose":"안 쓰는 교구, 도서, 생활용품의 재활용을 통한 탄소중립 실천 및 교직원 간 친목 도모"},"adminCode":"1007","zones":{"free":[{"id":"f1","name":"국어·수학 참고서 세트 (중1~3)","desc":"상태 양호, 필기 없음","donor":"교무실","limit":"1인당 최대 3권"},{"id":"f2","name":"사무용 문구 모음 (볼펜·포스트잇 등)","desc":"미사용 다수 포함","donor":"","limit":"1인당 최대 2개"}],"used":[{"id":"u2","name":"에어프라이어 (3.5L)","desc":"사용감 적음, 정상 작동","price":25000,"seller":""}],"auction":[{"id":"a1","name":"재능기부 쿠폰 (커피 쏘기 1회)","desc":"기증자가 직접 쏩니다","startPrice":1000,"deadline":"10월 7일 16:30 마감"},{"id":"a2","name":"미개봉 텀블러 (고가 기증품)","desc":"브랜드 미개봉 신품","startPrice":2000,"deadline":"10월 7일 16:30 마감"}]},"trades":[{"id":"t1","name":"후드집업 (프리사이즈)","trader":"김 선생님","zone":"used","method":"무인 정산함 결제","price":8000,"date":"10월 7일","createdAt":1},{"id":"t2","name":"국어 참고서 3권","trader":"박 선생님","zone":"free","method":"무료 나눔","price":0,"date":"10월 7일","createdAt":2},{"id":"t3","name":"재능기부 쿠폰 (커피 쏘기 1회)","trader":"박 선생님","zone":"auction","method":"블라인드 경매 낙찰","price":1500,"date":"10월 7일","createdAt":3}]};
 
@@ -326,7 +335,7 @@ var TEMP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
-var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null };
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{} };
 try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
 
 function escapeHtml(s){
@@ -417,9 +426,40 @@ function renderItemCard(zone, it, adminUnlocked){
   var photoHtml = it.image
     ? '<img class="item-photo" src="' + escapeHtml(it.image) + '" alt="">'
     : '<div class="item-photo item-photo-empty">' + ZONE_ICON[zone] + '</div>';
+  var bidHtml = zone === 'auction' ? renderBidSection(it, adminUnlocked) : '';
   return '<article class="item-card">' + adminBtns + photoHtml + '<h3>' + escapeHtml(it.name) + '</h3>' +
     (it.desc ? '<p class="item-desc">' + escapeHtml(it.desc) + '</p>' : '') +
-    '<div class="item-meta">' + meta + '</div></article>';
+    '<div class="item-meta">' + meta + '</div>' + bidHtml + '</article>';
+}
+
+function renderBidSection(it, adminUnlocked){
+  var itemBids = bidsData[it.id] ? Object.keys(bidsData[it.id]).map(function(k){ return bidsData[it.id][k]; }) : [];
+  var isOpen = ui.biddingItem === it.id;
+  var html = '<div class="bid-row">' +
+    '<button type="button" class="btn btn-ghost btn-sm" data-action="toggle-bid" data-id="' + it.id + '">' + (isOpen ? '취소' : '입찰하기') + '</button>';
+  if(adminUnlocked){
+    var viewOpen = !!ui.viewingBids[it.id];
+    html += '<button type="button" class="btn btn-ghost btn-sm" data-action="toggle-bid-view" data-id="' + it.id + '">' + (viewOpen ? '입찰 현황 숨기기' : '입찰 현황 보기 (' + itemBids.length + ')') + '</button>';
+  }
+  html += '</div>';
+  if(isOpen){
+    html += '<form class="item-form bid-form" id="bid-form-' + it.id + '" data-item="' + it.id + '">' +
+      fieldRowVal('bidderName', '성함 *', '', 'text', true) +
+      fieldRowVal('bidPrice', '경매가 (원) *', '', 'number', true) +
+      '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">제출하기</button></div>' +
+    '</form>';
+  }
+  if(adminUnlocked && ui.viewingBids[it.id]){
+    if(itemBids.length){
+      var sorted = itemBids.slice().sort(function(a, b){ return (b.price || 0) - (a.price || 0); });
+      html += '<div class="bid-list">' + sorted.map(function(b, idx){
+        return '<div class="bid-item' + (idx === 0 ? ' bid-item-top' : '') + '"><span>' + escapeHtml(b.name) + '</span><span class="price">' + won(b.price) + '</span></div>';
+      }).join('') + '</div>';
+    } else {
+      html += '<p class="empty-note">아직 입찰이 없어요.</p>';
+    }
+  }
+  return html;
 }
 
 function renderZone(meta, items, ui){
@@ -742,6 +782,21 @@ function onClick(e){
     setTimeout(function(){ var el = document.querySelector('#form-' + ez + ' input[name="name"]'); if(el) el.focus(); }, 0);
     return;
   }
+  if(action === 'toggle-bid'){
+    var bidItemId = t.getAttribute('data-id');
+    ui.biddingItem = (ui.biddingItem === bidItemId) ? null : bidItemId;
+    rerender();
+    if(ui.biddingItem){
+      setTimeout(function(){ var el = document.querySelector('#bid-form-' + bidItemId + ' input[name="bidderName"]'); if(el) el.focus(); }, 0);
+    }
+    return;
+  }
+  if(action === 'toggle-bid-view'){
+    var viewItemId = t.getAttribute('data-id');
+    ui.viewingBids[viewItemId] = !ui.viewingBids[viewItemId];
+    rerender();
+    return;
+  }
   if(action === 'edit-trade'){
     var eid = t.getAttribute('data-id');
     ui.openForms.trade = true;
@@ -799,6 +854,23 @@ function onClick(e){
 
 function onSubmit(e){
   var form = e.target;
+  if(form.classList.contains('bid-form')){
+    e.preventDefault();
+    var itemId = form.getAttribute('data-item');
+    var fdB = new FormData(form);
+    var bName = (fdB.get('bidderName') || '').toString().trim();
+    var bPrice = Number(fdB.get('bidPrice') || 0);
+    if(!bName || !bPrice) return;
+    var bidId = uid();
+    set(ref(db, 'hansolBids/' + itemId + '/' + bidId), { name: bName, price: bPrice, ts: Date.now() }).then(function(){
+      toast('입찰이 제출되었습니다. 결과는 마감 후 안내돼요.');
+    }).catch(function(err){
+      toast('입찰 제출에 실패했어요. 다시 시도해주세요.');
+    });
+    ui.biddingItem = null;
+    rerender();
+    return;
+  }
   if(form.id === 'passcode-form'){
     e.preventDefault();
     var val = (new FormData(form)).get('code');
@@ -920,6 +992,7 @@ window.addEventListener('hashchange', function(){
   ui.confirmDelete = null;
   ui.editingTrade = null;
   ui.editingItem = null;
+  ui.biddingItem = null;
   rerender();
   window.scrollTo(0, 0);
 });
@@ -950,6 +1023,11 @@ onValue(stateRef, function(snapshot){
   }
 }, function(err){
   document.getElementById('root').innerHTML = '<p class="loading-note">데이터를 불러오지 못했어요. Firebase 설정 또는 규칙을 확인해주세요.</p>';
+});
+
+onValue(bidsRef, function(snapshot){
+  bidsData = snapshot.val() || {};
+  rerender();
 });
 </script>
 </body>
