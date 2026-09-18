@@ -241,7 +241,19 @@ button{font-family:inherit}
 .bid-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
 .bid-item{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px}
 .bid-item-top{border-color:var(--auction);background:var(--auction-bg)}
-.bid-item .price{font-weight:900;font-variant-numeric:tabular-nums;font-size:13px}
+.bid-item .price{font-weight:900;font-variant-numeric:tabular-nums;font-size:13px;margin-left:auto}
+.bid-del{
+  width:20px;height:20px;border-radius:50%;flex:none;
+  border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);
+  font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.bid-del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+.bid-results{margin-top:14px;background:var(--auction-bg);border:1px solid var(--auction);border-radius:var(--radius-md);padding:14px 16px}
+.bid-results h3{font-family:var(--font-body);font-size:14px;font-weight:700;color:var(--auction);margin-bottom:8px}
+.bid-result-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)}
+.bid-result-row:first-of-type{border-top:none}
+.bid-result-name{flex:1;font-weight:700;font-size:13.5px}
+.bid-result-winner{font-size:13px;color:var(--ink-soft)}
 
 .trade-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 .trade-card{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;flex-wrap:wrap}
@@ -335,7 +347,7 @@ var TEMP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
-var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{} };
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{}, showBidResults:false };
 try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
 
 function escapeHtml(s){
@@ -432,8 +444,15 @@ function renderItemCard(zone, it, adminUnlocked){
     '<div class="item-meta">' + meta + '</div>' + bidHtml + '</article>';
 }
 
+function getItemBids(itemId){
+  return bidsData[itemId] ? Object.keys(bidsData[itemId]).map(function(k){
+    var b = bidsData[itemId][k];
+    return { id: k, name: b.name, price: b.price, ts: b.ts };
+  }) : [];
+}
+
 function renderBidSection(it, adminUnlocked){
-  var itemBids = bidsData[it.id] ? Object.keys(bidsData[it.id]).map(function(k){ return bidsData[it.id][k]; }) : [];
+  var itemBids = getItemBids(it.id);
   var isOpen = ui.biddingItem === it.id;
   var html = '<div class="bid-row">' +
     '<button type="button" class="btn btn-ghost btn-sm" data-action="toggle-bid" data-id="' + it.id + '">' + (isOpen ? '취소' : '입찰하기') + '</button>';
@@ -453,7 +472,10 @@ function renderBidSection(it, adminUnlocked){
     if(itemBids.length){
       var sorted = itemBids.slice().sort(function(a, b){ return (b.price || 0) - (a.price || 0); });
       html += '<div class="bid-list">' + sorted.map(function(b, idx){
-        return '<div class="bid-item' + (idx === 0 ? ' bid-item-top' : '') + '"><span>' + escapeHtml(b.name) + '</span><span class="price">' + won(b.price) + '</span></div>';
+        return '<div class="bid-item' + (idx === 0 ? ' bid-item-top' : '') + '">' +
+          '<span>' + escapeHtml(b.name) + '</span><span class="price">' + won(b.price) + '</span>' +
+          '<button type="button" class="bid-del" data-action="delete-bid" data-item="' + it.id + '" data-bid="' + b.id + '" aria-label="삭제">×</button>' +
+        '</div>';
       }).join('') + '</div>';
     } else {
       html += '<p class="empty-note">아직 입찰이 없어요.</p>';
@@ -462,14 +484,34 @@ function renderBidSection(it, adminUnlocked){
   return html;
 }
 
+function renderBidResults(items){
+  if(!items.length) return '<div class="bid-results"><p class="empty-note">등록된 경매 물품이 없어요.</p></div>';
+  var rows = items.map(function(it){
+    var itemBids = getItemBids(it.id);
+    if(!itemBids.length){
+      return '<div class="bid-result-row"><span class="bid-result-name">' + escapeHtml(it.name) + '</span><span class="empty-note">입찰 없음</span></div>';
+    }
+    var top = itemBids.reduce(function(a, b){ return (b.price || 0) > (a.price || 0) ? b : a; });
+    return '<div class="bid-result-row"><span class="bid-result-name">' + escapeHtml(it.name) + '</span>' +
+      '<span class="bid-result-winner">' + escapeHtml(top.name) + '</span>' +
+      '<span class="price">' + won(top.price) + '</span></div>';
+  }).join('');
+  return '<div class="bid-results"><h3>입찰 결과 (최고가 기준)</h3>' + rows + '</div>';
+}
+
 function renderZone(meta, items, ui){
   var open = !!ui.openForms[meta.key];
   var editingObj = ui.editingItem ? items.filter(function(it){ return it.id === ui.editingItem; })[0] : null;
   var cardsHtml = items.length
     ? items.map(function(it){ return renderItemCard(meta.key, it, ui.adminUnlocked); }).join('')
     : '<p class="empty-note">아직 등록된 물품이 없어요.</p>';
+  var bidResultsBtn = (meta.key === 'auction')
+    ? '<button type="button" class="btn btn-ghost btn-sm" data-action="toggle-bid-results">' + (ui.showBidResults ? '입찰 결과 숨기기' : '입찰 결과 보기') + '</button>'
+    : '';
   var adminBar = ui.adminUnlocked
-    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="' + meta.key + '">' + (open ? '취소' : '+ 물품 등록') + '</button></div>' + (open ? renderItemForm(meta.key, editingObj, ui.pendingImage[meta.key]) : '')
+    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="' + meta.key + '">' + (open ? '취소' : '+ 물품 등록') + '</button>' + bidResultsBtn + '</div>' +
+      (open ? renderItemForm(meta.key, editingObj, ui.pendingImage[meta.key]) : '') +
+      (meta.key === 'auction' && ui.showBidResults ? renderBidResults(items) : '')
     : '';
   return '<section class="zone zone-' + meta.key + '">' +
     '<div class="zone-head"><div class="zone-title"><span class="zone-icon">' + ZONE_ICON[meta.key] + '</span><h2>' + escapeHtml(meta.label) + '</h2></div>' +
@@ -523,12 +565,17 @@ function renderPasscodeModal(ui){
 
 function renderConfirmDeleteModal(ui, state){
   var cd = ui.confirmDelete;
-  var name = cd && cd.kind === 'trade' ? '이 거래 기록' : '이 물품';
-  var title = cd && cd.kind === 'trade' ? '거래 기록 삭제' : '물품 삭제';
+  var name = '이 물품';
+  var title = '물품 삭제';
+  if(cd && cd.kind === 'trade'){ name = '이 거래 기록'; title = '거래 기록 삭제'; }
+  if(cd && cd.kind === 'bid'){ name = '이 입찰'; title = '입찰 삭제'; }
   if(cd){
     if(cd.kind === 'trade'){
       var tr = state.trades.filter(function(t){ return t.id === cd.id; })[0];
       if(tr) name = tr.name;
+    } else if(cd.kind === 'bid'){
+      var b = bidsData[cd.itemId] && bidsData[cd.itemId][cd.bidId] ? bidsData[cd.itemId][cd.bidId] : null;
+      if(b) name = b.name + ' (' + won(b.price) + ')';
     } else {
       var item = state.zones[cd.zone] ? state.zones[cd.zone].filter(function(it){ return it.id === cd.id; })[0] : null;
       if(item) name = item.name;
@@ -688,6 +735,14 @@ function commit(newState){
   });
 }
 
+function deleteBid(itemId, bidId){
+  set(ref(db, 'hansolBids/' + itemId + '/' + bidId), null).then(function(){
+    toast('입찰을 삭제했습니다.');
+  }).catch(function(err){
+    toast('삭제에 실패했어요.');
+  });
+}
+
 function processImage(file, callback){
   var reader = new FileReader();
   reader.onload = function(){
@@ -797,6 +852,17 @@ function onClick(e){
     rerender();
     return;
   }
+  if(action === 'toggle-bid-results'){
+    ui.showBidResults = !ui.showBidResults;
+    rerender();
+    return;
+  }
+  if(action === 'delete-bid'){
+    var dItemId = t.getAttribute('data-item'), dBidId = t.getAttribute('data-bid');
+    ui.confirmDelete = { kind: 'bid', itemId: dItemId, bidId: dBidId };
+    rerender();
+    return;
+  }
   if(action === 'edit-trade'){
     var eid = t.getAttribute('data-id');
     ui.openForms.trade = true;
@@ -841,6 +907,11 @@ function onClick(e){
     var cd = ui.confirmDelete;
     ui.confirmDelete = null;
     if(!cd) return;
+    if(cd.kind === 'bid'){
+      deleteBid(cd.itemId, cd.bidId);
+      rerender();
+      return;
+    }
     var newState = clone(appState);
     if(cd.kind === 'trade'){
       newState.trades = newState.trades.filter(function(tr){ return tr.id !== cd.id; });
@@ -993,6 +1064,7 @@ window.addEventListener('hashchange', function(){
   ui.editingTrade = null;
   ui.editingItem = null;
   ui.biddingItem = null;
+  ui.showBidResults = false;
   rerender();
   window.scrollTo(0, 0);
 });
