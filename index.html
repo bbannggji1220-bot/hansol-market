@@ -234,6 +234,15 @@ button{font-family:inherit}
   font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
 }
 .card-del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+.heart-btn{
+  position:absolute;top:10px;left:10px;z-index:1;display:flex;align-items:center;gap:4px;
+  border:1px solid var(--border);background:var(--surface);border-radius:999px;
+  padding:4px 10px 4px 7px;cursor:pointer;color:var(--ink-soft);font-size:12px;font-weight:700;
+}
+.heart-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8}
+.heart-btn.is-liked{color:var(--danger);border-color:var(--danger)}
+.heart-btn.is-liked svg{fill:var(--danger);stroke:var(--danger)}
+.heart-count{font-variant-numeric:tabular-nums}
 .empty-note{color:var(--ink-soft);font-size:13.5px;padding:10px 2px}
 
 .bid-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -260,6 +269,7 @@ button{font-family:inherit}
 .trade-main h3{font-size:15px;font-weight:700;font-family:var(--font-body)}
 .trade-main .item-desc{margin-top:4px}
 .trade-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.trade-status-note{font-size:12.5px;color:var(--ink-soft);margin-top:8px}
 .trade-admin{display:flex;gap:6px;align-items:center;flex:none}
 .trade-del{
   width:22px;height:22px;border-radius:50%;flex:none;
@@ -305,7 +315,7 @@ button{font-family:inherit}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+import { getDatabase, ref, onValue, set, runTransaction } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
 var firebaseConfig = {
   apiKey: "AIzaSyAmvlnL34I5F8Fjho21TpzkZUhOJmW_LYU",
@@ -321,8 +331,12 @@ var db = getDatabase(fbApp);
 var stateRef = ref(db, 'hansol');
 var bidsRef = ref(db, 'hansolBids');
 var bidsData = {};
+var likesRef = ref(db, 'hansolLikes');
+var likesData = {};
+var likedItems = {};
+try{ likedItems = JSON.parse(localStorage.getItem('hansol_liked') || '{}'); }catch(e){ likedItems = {}; }
 
-var DEFAULT_STATE = {"event":{"date":"10월 7일 수요일 15:30~","place":"도서관","audience":"교내 전 교직원","purpose":"안 쓰는 교구, 도서, 생활용품의 재활용을 통한 탄소중립 실천 및 교직원 간 친목 도모"},"adminCode":"1007","zones":{"free":[{"id":"f1","name":"국어·수학 참고서 세트 (중1~3)","desc":"상태 양호, 필기 없음","donor":"교무실","limit":"1인당 최대 3권"},{"id":"f2","name":"사무용 문구 모음 (볼펜·포스트잇 등)","desc":"미사용 다수 포함","donor":"","limit":"1인당 최대 2개"}],"used":[{"id":"u2","name":"에어프라이어 (3.5L)","desc":"사용감 적음, 정상 작동","price":25000,"seller":""}],"auction":[{"id":"a1","name":"재능기부 쿠폰 (커피 쏘기 1회)","desc":"기증자가 직접 쏩니다","startPrice":1000,"deadline":"10월 7일 16:30 마감"},{"id":"a2","name":"미개봉 텀블러 (고가 기증품)","desc":"브랜드 미개봉 신품","startPrice":2000,"deadline":"10월 7일 16:30 마감"}]},"trades":[{"id":"t1","name":"후드집업 (프리사이즈)","trader":"김 선생님","zone":"used","method":"무인 정산함 결제","price":8000,"date":"10월 7일","createdAt":1},{"id":"t2","name":"국어 참고서 3권","trader":"박 선생님","zone":"free","method":"무료 나눔","price":0,"date":"10월 7일","createdAt":2},{"id":"t3","name":"재능기부 쿠폰 (커피 쏘기 1회)","trader":"박 선생님","zone":"auction","method":"블라인드 경매 낙찰","price":1500,"date":"10월 7일","createdAt":3}]};
+var DEFAULT_STATE = {"event":{"date":"10월 7일 수요일 15:30~","place":"도서관","audience":"교내 전 교직원","purpose":"안 쓰는 교구, 도서, 생활용품의 재활용을 통한 탄소중립 실천 및 교직원 간 친목 도모"},"adminCode":"1007","zones":{"free":[{"id":"f1","name":"국어·수학 참고서 세트 (중1~3)","desc":"상태 양호, 필기 없음","donor":"교무실","limit":"1인당 최대 3권"},{"id":"f2","name":"사무용 문구 모음 (볼펜·포스트잇 등)","desc":"미사용 다수 포함","donor":"","limit":"1인당 최대 2개"}],"used":[{"id":"u2","name":"에어프라이어 (3.5L)","desc":"사용감 적음, 정상 작동","price":25000,"seller":""}],"auction":[{"id":"a1","name":"재능기부 쿠폰 (커피 쏘기 1회)","desc":"기증자가 직접 쏩니다","startPrice":1000,"deadline":"10월 7일 16:30 마감"},{"id":"a2","name":"미개봉 텀블러 (고가 기증품)","desc":"브랜드 미개봉 신품","startPrice":2000,"deadline":"10월 7일 16:30 마감"}]},"trades":[{"id":"t1","name":"후드집업 (프리사이즈)","trader":"김 선생님","zone":"used","method":"무인 정산함 결제","price":8000,"date":"10월 7일","createdAt":1},{"id":"t2","name":"국어 참고서 3권","trader":"박 선생님","zone":"free","method":"무료 나눔","price":0,"date":"10월 7일","createdAt":2},{"id":"t3","name":"재능기부 쿠폰 (커피 쏘기 1회)","trader":"박 선생님","zone":"auction","method":"블라인드 경매 낙찰","price":1500,"date":"10월 7일","createdAt":3}],"tradeDeskEnabled":false};
 
 var SS_KEY = 'hansol_admin_unlocked';
 var toastTimer = null;
@@ -344,6 +358,7 @@ var ZONE_ICON = {
   trade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8h14l-3.2-3.2M20.5 16h-14l3.2 3.2"/></svg>'
 };
 var TEMP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.8V5.5a2.2 2.2 0 1 0-4.4 0v9.3a4.2 4.2 0 1 0 4.4 0Z"/></svg>';
+var HEART_ICON = '<svg viewBox="0 0 24 24"><path d="M12 20.3s-7.6-4.6-10.1-9.4C0.4 7.6 2.3 3.8 6 3.8c2 0 3.6 1.1 4.5 2.7 0.9-1.6 2.5-2.7 4.5-2.7 3.7 0 5.6 3.8 4.1 7.1-2.5 4.8-10.1 9.4-10.1 9.4Z"/></svg>';
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
@@ -439,7 +454,10 @@ function renderItemCard(zone, it, adminUnlocked){
     ? '<img class="item-photo" src="' + escapeHtml(it.image) + '" alt="">'
     : '<div class="item-photo item-photo-empty">' + ZONE_ICON[zone] + '</div>';
   var bidHtml = zone === 'auction' ? renderBidSection(it, adminUnlocked) : '';
-  return '<article class="item-card">' + adminBtns + photoHtml + '<h3>' + escapeHtml(it.name) + '</h3>' +
+  var liked = !!likedItems[it.id];
+  var likeCount = likesData[it.id] || 0;
+  var heartHtml = '<button type="button" class="heart-btn' + (liked ? ' is-liked' : '') + '" data-action="toggle-like" data-id="' + it.id + '" aria-label="찜하기">' + HEART_ICON + '<span class="heart-count">' + likeCount + '</span></button>';
+  return '<article class="item-card">' + adminBtns + heartHtml + photoHtml + '<h3>' + escapeHtml(it.name) + '</h3>' +
     (it.desc ? '<p class="item-desc">' + escapeHtml(it.desc) + '</p>' : '') +
     '<div class="item-meta">' + meta + '</div>' + bidHtml + '</article>';
 }
@@ -601,12 +619,13 @@ function renderZoneNavCard(meta, count){
   '</a>';
 }
 
-function renderTradeNavCard(count){
+function renderTradeNavCard(count, enabled){
+  var countLabel = enabled ? ('거래 기록 ' + count + '건') : '10월 7일 공개 예정';
   return '<a href="#trade" class="zone-nav-card zone-nav-trade">' +
     '<span class="zone-icon">' + ZONE_ICON.trade + '</span>' +
     '<h2>물품 거래 창구</h2>' +
     '<p>물품이 어떻게 거래됐는지 확인해보세요</p>' +
-    '<span class="zone-nav-count">거래 기록 ' + count + '건</span>' +
+    '<span class="zone-nav-count">' + countLabel + '</span>' +
     '<span class="zone-nav-cta">둘러보기 →</span>' +
   '</a>';
 }
@@ -618,7 +637,7 @@ function renderHome(state, ui){
       renderZoneNavCard(ZONE_META.free, state.zones.free.length) +
       renderZoneNavCard(ZONE_META.used, state.zones.used.length) +
       renderZoneNavCard(ZONE_META.auction, state.zones.auction.length) +
-      renderTradeNavCard(state.trades.length) +
+      renderTradeNavCard(state.trades.length, state.tradeDeskEnabled) +
     '</div>' +
     '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
 }
@@ -654,23 +673,37 @@ function renderTradeRow(t, adminUnlocked){
 }
 
 function renderTradeDeskPage(state, ui){
+  var enabled = !!state.tradeDeskEnabled;
+  var footer = '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
+  var head = '<div class="zone-head"><div class="zone-title"><span class="zone-icon">' + ZONE_ICON.trade + '</span><h2>물품 거래 창구</h2></div>' +
+    '<p class="zone-tagline">물품이 실제로 어떻게 거래됐는지 확인해보세요</p></div>';
+
+  if(!enabled && !ui.adminUnlocked){
+    return '<a href="#" class="back-link">← 홈으로</a>' +
+      '<section class="zone zone-trade">' + head +
+        '<p class="empty-note">거래 창구는 10월 7일 행사 당일에 열려요. 그때 다시 확인해주세요!</p>' +
+      '</section>' + footer;
+  }
+
   var trades = state.trades.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
   var open = !!ui.openForms.trade;
   var editingObj = ui.editingTrade ? state.trades.filter(function(t){ return t.id === ui.editingTrade; })[0] : null;
   var adminBar = ui.adminUnlocked
-    ? '<div class="zone-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="trade">' + (open ? '취소' : '+ 거래 등록') + '</button></div>' + (open ? renderTradeForm(editingObj) : '')
+    ? '<div class="zone-admin">' +
+        '<button type="button" class="btn ' + (enabled ? 'btn-ghost' : 'btn-primary') + ' btn-sm" data-action="toggle-trade-desk">' + (enabled ? '거래 창구 끄기' : '거래 창구 켜기') + '</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-action="toggle-form" data-zone="trade">' + (open ? '취소' : '+ 거래 등록') + '</button>' +
+      '</div>' +
+      '<p class="trade-status-note">' + (enabled ? '지금 모두에게 공개돼 있어요.' : '지금은 관리자에게만 보이고 있어요 (10월 7일 공개 예정).') + '</p>' +
+      (open ? renderTradeForm(editingObj) : '')
     : '';
   var rows = trades.length ? trades.map(function(t){ return renderTradeRow(t, ui.adminUnlocked); }).join('') : '<p class="empty-note">아직 등록된 거래 기록이 없어요.</p>';
   return '<a href="#" class="back-link">← 홈으로</a>' +
-    '<section class="zone zone-trade">' +
-      '<div class="zone-head"><div class="zone-title"><span class="zone-icon">' + ZONE_ICON.trade + '</span><h2>물품 거래 창구</h2></div>' +
-      '<p class="zone-tagline">물품이 실제로 어떻게 거래됐는지 확인해보세요</p></div>' +
+    '<section class="zone zone-trade">' + head +
       '<div class="zone-info"><div><span class="zone-info-label">등록</span><p>관리자만 거래 내역을 등록할 수 있어요.</p></div>' +
       '<div><span class="zone-info-label">온도</span><p>거래가 많을수록 그 사람의 매너 온도가 올라가요.</p></div></div>' +
       adminBar +
       '<div class="trade-list">' + rows + '</div>' +
-    '</section>' +
-    '<footer class="footer"><p>함께하는 나눔, 더 행복한 우리!</p></footer>';
+    '</section>' + footer;
 }
 
 function renderTempBoard(state){
@@ -850,6 +883,24 @@ function onClick(e){
     var viewItemId = t.getAttribute('data-id');
     ui.viewingBids[viewItemId] = !ui.viewingBids[viewItemId];
     rerender();
+    return;
+  }
+  if(action === 'toggle-like'){
+    var likeItemId = t.getAttribute('data-id');
+    var wasLiked = !!likedItems[likeItemId];
+    if(wasLiked){ delete likedItems[likeItemId]; } else { likedItems[likeItemId] = true; }
+    try{ localStorage.setItem('hansol_liked', JSON.stringify(likedItems)); }catch(err){}
+    rerender();
+    runTransaction(ref(db, 'hansolLikes/' + likeItemId), function(current){
+      var cur = current || 0;
+      return wasLiked ? Math.max(0, cur - 1) : cur + 1;
+    }).catch(function(err){});
+    return;
+  }
+  if(action === 'toggle-trade-desk'){
+    var newState0 = clone(appState);
+    newState0.tradeDeskEnabled = !newState0.tradeDeskEnabled;
+    commit(newState0);
     return;
   }
   if(action === 'toggle-bid-results'){
@@ -1082,6 +1133,7 @@ function normalizeState(val){
   val.zones.used = val.zones.used || [];
   val.zones.auction = val.zones.auction || [];
   val.trades = val.trades || [];
+  val.tradeDeskEnabled = (typeof val.tradeDeskEnabled === 'boolean') ? val.tradeDeskEnabled : false;
   return val;
 }
 
@@ -1099,6 +1151,11 @@ onValue(stateRef, function(snapshot){
 
 onValue(bidsRef, function(snapshot){
   bidsData = snapshot.val() || {};
+  rerender();
+});
+
+onValue(likesRef, function(snapshot){
+  likesData = snapshot.val() || {};
   rerender();
 });
 </script>
