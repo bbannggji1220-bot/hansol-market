@@ -284,6 +284,14 @@ img.item-photo{cursor:zoom-in}
 .trade-main h3{font-size:15px;font-weight:700;font-family:var(--font-body);text-wrap:wrap}
 .trade-main .item-desc{margin-top:4px}
 .trade-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.temp-card{text-align:left;font:inherit;color:var(--ink);cursor:pointer;width:100%}
+.temp-card:hover{border-color:var(--accent)}
+.modal-wide{width:min(460px,90vw);max-height:80vh;overflow-y:auto}
+.modal-wide h2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.modal-wide h4{font-family:var(--font-body);font-size:13.5px;font-weight:700;margin:14px 0 6px;color:var(--ink-soft)}
+.person-temp{font-family:var(--font-body);font-size:15px;font-weight:900;color:var(--danger)}
+.person-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.person-sub{color:var(--ink-soft);font-size:12.5px}
 .trade-name-form{margin-top:16px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:22px}
 .trade-name-form h3{font-family:var(--font-body);font-size:17px;font-weight:700;margin-bottom:12px}
 .trade-name-row{display:flex;gap:10px;flex-wrap:wrap}
@@ -433,7 +441,7 @@ var HEART_ICON = '<svg viewBox="0 0 24 24"><path d="M12 20.3s-7.6-4.6-10.1-9.4C0
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
-var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{}, showBidResults:false, tradeName:'', tradeTab:null, tradeConfirm:null, tradeDone:null };
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{}, showBidResults:false, tradeName:'', tradeTab:null, tradeConfirm:null, tradeDone:null, personDetail:null };
 try{ ui.tradeName = localStorage.getItem('hansol_trader_name') || ''; }catch(e){}
 try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
 
@@ -478,21 +486,22 @@ function selfTradeList(){
 }
 
 function computeTemps(state){
-  var counts = {}, display = {};
-  function add(name){
+  var regs = {}, trs = {}, display = {};
+  function add(name, bucket){
     name = (name || '').trim();
     var k = nameKey(name);
     if(!k) return;
-    counts[k] = (counts[k] || 0) + 1;
+    bucket[k] = (bucket[k] || 0) + 1;
     if(!display[k] || (name.indexOf('선생님') > -1 && display[k].indexOf('선생님') < 0)) display[k] = name;
   }
-  state.trades.forEach(function(t){ add(t.trader); });
-  selfTradeList().forEach(function(t){ add(t.trader); });
-  state.zones.free.forEach(function(it){ add(it.donor); });
-  state.zones.used.forEach(function(it){ add(it.seller); });
-  state.zones.auction.forEach(function(it){ add(it.registrant); });
-  var list = Object.keys(counts).map(function(k){
-    return { name: display[k], count: counts[k], temp: 36.5 + counts[k] * 0.3 };
+  state.trades.forEach(function(t){ add(t.trader, trs); });
+  selfTradeList().forEach(function(t){ add(t.trader, trs); });
+  state.zones.free.forEach(function(it){ add(it.donor, regs); });
+  state.zones.used.forEach(function(it){ add(it.seller, regs); });
+  state.zones.auction.forEach(function(it){ add(it.registrant, regs); });
+  var list = Object.keys(display).map(function(k){
+    var r = regs[k] || 0, t = trs[k] || 0;
+    return { key: k, name: display[k], regs: r, trades: t, count: r + t, temp: 36.5 + (r + t) * 0.3 };
   });
   list.sort(function(a, b){ return b.temp - a.temp || a.name.localeCompare(b.name); });
   return list;
@@ -861,16 +870,41 @@ function renderTradeDeskPage(state, ui){
     '</section>' + footer;
 }
 
+function renderPersonModal(state){
+  var p = computeTemps(state).filter(function(x){ return x.key === ui.personDetail; })[0];
+  if(!p) return '';
+  var items = [];
+  [['free', 'donor'], ['used', 'seller'], ['auction', 'registrant']].forEach(function(z){
+    state.zones[z[0]].forEach(function(it){
+      if(nameKey(it[z[1]]) === p.key) items.push({ zone: z[0], name: it.name });
+    });
+  });
+  var trades = state.trades.concat(selfTradeList()).filter(function(t){ return nameKey(t.trader) === p.key; })
+    .sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+  var itemsHtml = items.length ? items.map(function(it){
+    return '<li><span class="chip chip-soft">' + (TRADE_ZONE_LABEL[it.zone] || '') + '</span> ' + escapeHtml(it.name) + '</li>';
+  }).join('') : '<li class="empty-note">등록한 물품이 없어요.</li>';
+  var tradesHtml = trades.length ? trades.map(function(t){
+    return '<li><span class="chip chip-soft">' + (TRADE_ZONE_LABEL[t.zone] || '기타') + '</span> ' + escapeHtml(t.name) +
+      (t.method ? ' <span class="person-sub">· ' + escapeHtml(t.method) + '</span>' : '') + '</li>';
+  }).join('') : '<li class="empty-note">거래 내역이 없어요.</li>';
+  return '<div class="modal-backdrop" data-action="close-person"></div><div class="modal modal-wide" role="dialog" aria-modal="true">' +
+    '<h2>' + escapeHtml(p.name) + ' <span class="person-temp">' + p.temp.toFixed(1) + '℃</span></h2>' +
+    '<h4>등록한 물품 (' + items.length + ')</h4><ul class="person-list">' + itemsHtml + '</ul>' +
+    '<h4>거래 내역 (' + trades.length + ')</h4><ul class="person-list">' + tradesHtml + '</ul>' +
+    '<div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="close-person">닫기</button></div></div>';
+}
+
 function renderTempBoard(state){
   var list = computeTemps(state).slice(0, 3);
   var ranks = ['temp-rank-1','temp-rank-2','temp-rank-3'];
   var body = list.length
     ? list.map(function(p, idx){
-        return '<div class="temp-card ' + ranks[idx] + '">' +
+        return '<button type="button" class="temp-card ' + ranks[idx] + '" data-action="show-person" data-key="' + escapeHtml(p.key) + '">' +
           '<span class="temp-rank">' + (idx + 1) + '</span>' +
-          '<div class="temp-info"><span class="temp-name">' + escapeHtml(p.name) + '</span><span class="temp-count">거래 ' + p.count + '건</span></div>' +
+          '<div class="temp-info"><span class="temp-name">' + escapeHtml(p.name) + '</span><span class="temp-count">등록 ' + p.regs + '건 · 거래 ' + p.trades + '건</span></div>' +
           '<span class="temp-value">' + p.temp.toFixed(1) + '℃</span>' +
-        '</div>';
+        '</button>';
       }).join('')
     : '<p class="empty-note">아직 거래 창구에 등록된 기록이 없어요.</p>';
   return '<section class="temp-board">' +
@@ -890,7 +924,8 @@ function renderApp(state, ui){
     '<main class="wrap">' + pageHtml + '</main>' +
     (ui.showPasscode ? renderPasscodeModal(ui) : '') +
     (ui.confirmDelete ? renderConfirmDeleteModal(ui, state) : '') +
-    renderTradeModals(state);
+    renderTradeModals(state) +
+    (ui.personDetail ? renderPersonModal(state) : '');
 }
 
 function parseHash(){
@@ -1042,6 +1077,16 @@ function onClick(e){
   if(action === 'toggle-bid-view'){
     var viewItemId = t.getAttribute('data-id');
     ui.viewingBids[viewItemId] = !ui.viewingBids[viewItemId];
+    rerender();
+    return;
+  }
+  if(action === 'show-person'){
+    ui.personDetail = t.getAttribute('data-key');
+    rerender();
+    return;
+  }
+  if(action === 'close-person'){
+    ui.personDetail = null;
     rerender();
     return;
   }
@@ -1349,6 +1394,7 @@ window.addEventListener('hashchange', function(){
   ui.tradeTab = null;
   ui.tradeConfirm = null;
   ui.tradeDone = null;
+  ui.personDetail = null;
   rerender();
   window.scrollTo(0, 0);
 });
