@@ -284,6 +284,12 @@ img.item-photo{cursor:zoom-in}
 .trade-main h3{font-size:15px;font-weight:700;font-family:var(--font-body);text-wrap:wrap}
 .trade-main .item-desc{margin-top:4px}
 .trade-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.temp-list.is-expanded{grid-auto-rows:auto;max-height:460px;overflow-y:auto;flex:none}
+.temp-more{margin-top:14px;align-self:center}
+.trade-left{display:flex;align-items:center;gap:12px;min-width:0}
+.trade-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none;background:var(--surface);border:1px solid var(--border)}
+.trade-thumb-empty{display:flex;align-items:center;justify-content:center;color:var(--ink-soft)}
+.trade-thumb-empty svg{width:24px;height:24px;opacity:.5}
 .temp-card{text-align:left;font:inherit;color:var(--ink);cursor:pointer;width:100%}
 .temp-card:hover{border-color:var(--accent)}
 .modal-wide{width:min(460px,90vw);max-height:80vh;overflow-y:auto}
@@ -441,7 +447,7 @@ var HEART_ICON = '<svg viewBox="0 0 24 24"><path d="M12 20.3s-7.6-4.6-10.1-9.4C0
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
-var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{}, showBidResults:false, tradeName:'', tradeTab:null, tradeConfirm:null, tradeDone:null, personDetail:null };
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{}, showBidResults:false, tradeName:'', tradeTab:null, tradeConfirm:null, tradeDone:null, personDetail:null, showAllRanks:false };
 try{ ui.tradeName = localStorage.getItem('hansol_trader_name') || ''; }catch(e){}
 try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
 
@@ -828,8 +834,19 @@ function renderTradeRow(t, adminUnlocked){
     : (t.self
       ? '<div class="trade-admin"><button type="button" class="trade-del" data-action="delete-selftrade" data-id="' + t.id + '" aria-label="삭제">×</button></div>'
       : '<div class="trade-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="edit-trade" data-id="' + t.id + '">수정</button><button type="button" class="trade-del" data-action="delete-trade" data-id="' + t.id + '" aria-label="삭제">×</button></div>');
+  var src = null;
+  var zoneKeys = ZONE_META[t.zone] ? [t.zone] : ['free', 'used', 'auction'];
+  zoneKeys.forEach(function(z){
+    (appState.zones[z] || []).forEach(function(it){
+      if(!src && it.image && (t.self ? it.id === t.id : it.name === t.name)) src = it.image;
+    });
+  });
+  var thumb = src
+    ? '<img class="trade-thumb" src="' + escapeHtml(src) + '" alt="">'
+    : '<div class="trade-thumb trade-thumb-empty">' + (ZONE_ICON[t.zone] || ZONE_ICON.trade) + '</div>';
   return '<article class="trade-card">' +
-    '<div class="trade-main"><h3>' + escapeHtml(t.name) + '</h3><p class="item-desc">' + escapeHtml(t.trader) + ' 님과 거래 · ' + escapeHtml(zoneLabel) + (t.method ? ' · ' + escapeHtml(t.method) : '') + '</p></div>' +
+    '<div class="trade-left">' + thumb +
+    '<div class="trade-main"><h3>' + escapeHtml(t.name) + '</h3><p class="item-desc">' + escapeHtml(t.trader) + ' 님과 거래 · ' + escapeHtml(zoneLabel) + (t.method ? ' · ' + escapeHtml(t.method) : '') + '</p></div></div>' +
     '<div class="trade-meta">' + priceHtml + (t.date ? '<span class="chip chip-soft">' + escapeHtml(t.date) + '</span>' : '') + '</div>' +
     adminBtns +
   '</article>';
@@ -896,11 +913,12 @@ function renderPersonModal(state){
 }
 
 function renderTempBoard(state){
-  var list = computeTemps(state).slice(0, 3);
+  var all = computeTemps(state);
+  var list = ui.showAllRanks ? all : all.slice(0, 3);
   var ranks = ['temp-rank-1','temp-rank-2','temp-rank-3'];
   var body = list.length
     ? list.map(function(p, idx){
-        return '<button type="button" class="temp-card ' + ranks[idx] + '" data-action="show-person" data-key="' + escapeHtml(p.key) + '">' +
+        return '<button type="button" class="temp-card ' + (ranks[idx] || '') + '" data-action="show-person" data-key="' + escapeHtml(p.key) + '">' +
           '<span class="temp-rank">' + (idx + 1) + '</span>' +
           '<div class="temp-info"><span class="temp-name">' + escapeHtml(p.name) + '</span><span class="temp-count">등록 ' + p.regs + '건 · 거래 ' + p.trades + '건</span></div>' +
           '<span class="temp-value">' + p.temp.toFixed(1) + '℃</span>' +
@@ -909,7 +927,8 @@ function renderTempBoard(state){
     : '<p class="empty-note">아직 거래 창구에 등록된 기록이 없어요.</p>';
   return '<section class="temp-board">' +
     '<div class="temp-board-head">' + TEMP_ICON + '<div><h2>온도 랭킹 TOP 3</h2><p>물품을 많이 등록하거나 거래 창구에 거래가 많이 등록될수록 온도가 올라가요</p></div></div>' +
-    '<div class="temp-list">' + body + '</div>' +
+    '<div class="temp-list' + (ui.showAllRanks ? ' is-expanded' : '') + '">' + body + '</div>' +
+    (all.length > 3 ? '<button type="button" class="btn btn-ghost btn-sm temp-more" data-action="toggle-ranks">' + (ui.showAllRanks ? '접기' : '더보기 (전체 ' + all.length + '명)') + '</button>' : '') +
   '</section>';
 }
 
@@ -1077,6 +1096,11 @@ function onClick(e){
   if(action === 'toggle-bid-view'){
     var viewItemId = t.getAttribute('data-id');
     ui.viewingBids[viewItemId] = !ui.viewingBids[viewItemId];
+    rerender();
+    return;
+  }
+  if(action === 'toggle-ranks'){
+    ui.showAllRanks = !ui.showAllRanks;
     rerender();
     return;
   }
