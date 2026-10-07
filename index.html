@@ -284,6 +284,26 @@ img.item-photo{cursor:zoom-in}
 .trade-main h3{font-size:15px;font-weight:700;font-family:var(--font-body);text-wrap:wrap}
 .trade-main .item-desc{margin-top:4px}
 .trade-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.trade-name-form{margin-top:16px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:22px}
+.trade-name-form h3{font-family:var(--font-body);font-size:17px;font-weight:700;margin-bottom:12px}
+.trade-name-row{display:flex;gap:10px;flex-wrap:wrap}
+.trade-name-row input{flex:1;min-width:200px;font:inherit;padding:11px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink)}
+.trade-flow{margin-top:16px}
+.trade-who{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;margin-bottom:12px}
+.trade-tabs{display:flex;gap:10px;flex-wrap:wrap}
+.trade-tab{flex:1;min-width:110px;padding:13px 16px;border-radius:var(--radius-md);border:2px solid var(--border);background:var(--surface);color:var(--ink);font-size:15px;font-weight:700;cursor:pointer}
+.trade-tab-free.is-active{background:var(--free);border-color:var(--free);color:#fff}
+.trade-tab-used.is-active{background:var(--used);border-color:var(--used);color:#fff}
+.trade-tab-auction.is-active{background:var(--auction);border-color:var(--auction);color:#fff}
+.trade-pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:16px}
+.trade-pick{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;cursor:pointer}
+.trade-pick:hover:not(:disabled){border-color:var(--accent);transform:translateY(-2px)}
+.trade-pick .item-photo{height:130px;margin-bottom:2px}
+.trade-pick .item-photo-empty{background:var(--surface);color:var(--ink-soft)}
+.trade-pick-name{font-weight:700;font-size:14px}
+.trade-pick-sub{font-size:12.5px;color:var(--ink-soft);font-weight:700}
+.trade-pick.is-traded{opacity:.55;cursor:default}
+.trade-pick-badge{position:absolute;top:18px;left:18px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
 .trade-status-note{font-size:12.5px;color:var(--ink-soft);margin-top:8px}
 .trade-admin{display:flex;gap:6px;align-items:center;flex:none}
 .trade-del{
@@ -379,6 +399,9 @@ var db = getDatabase(fbApp);
 var stateRef = ref(db, 'hansol');
 var bidsRef = ref(db, 'hansolBids');
 var bidsData = {};
+var tradesRef = ref(db, 'hansolTrades');
+var selfTrades = {};
+var TRADE_TAB_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드 경매' };
 var likesRef = ref(db, 'hansolLikes');
 var likesData = {};
 var likedItems = {};
@@ -410,7 +433,8 @@ var HEART_ICON = '<svg viewBox="0 0 24 24"><path d="M12 20.3s-7.6-4.6-10.1-9.4C0
 var TRADE_ZONE_LABEL = { free:'무료나눔', used:'중고거래', auction:'블라인드경매', etc:'기타' };
 
 var appState = null;
-var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{}, showBidResults:false };
+var ui = { adminUnlocked:false, showPasscode:false, passcodeError:false, editingEvent:false, openForms:{}, pendingImage:{}, page:'home', confirmDelete:null, editingTrade:null, editingItem:null, biddingItem:null, viewingBids:{}, showBidResults:false, tradeName:'', tradeTab:null, tradeConfirm:null, tradeDone:null };
+try{ ui.tradeName = localStorage.getItem('hansol_trader_name') || ''; }catch(e){}
 try{ if(sessionStorage.getItem(SS_KEY) === '1') ui.adminUnlocked = true; }catch(e){}
 
 function escapeHtml(s){
@@ -442,19 +466,33 @@ function fieldRowSelect(name, label, options, selected){
   return '<label class="field"><span>' + label + '</span><select name="' + name + '">' + opts + '</select></label>';
 }
 
+function nameKey(n){
+  return String(n || '').replace(/\s+/g, '').replace(/(선생님|쌤)$/, '');
+}
+
+function selfTradeList(){
+  return Object.keys(selfTrades).map(function(k){
+    var t = selfTrades[k];
+    return { id: k, name: t.name, trader: t.trader, zone: t.zone, method: t.method, price: t.price, createdAt: t.ts, self: true };
+  });
+}
+
 function computeTemps(state){
-  var counts = {};
+  var counts = {}, display = {};
   function add(name){
     name = (name || '').trim();
-    if(!name) return;
-    counts[name] = (counts[name] || 0) + 1;
+    var k = nameKey(name);
+    if(!k) return;
+    counts[k] = (counts[k] || 0) + 1;
+    if(!display[k] || (name.indexOf('선생님') > -1 && display[k].indexOf('선생님') < 0)) display[k] = name;
   }
   state.trades.forEach(function(t){ add(t.trader); });
+  selfTradeList().forEach(function(t){ add(t.trader); });
   state.zones.free.forEach(function(it){ add(it.donor); });
   state.zones.used.forEach(function(it){ add(it.seller); });
   state.zones.auction.forEach(function(it){ add(it.registrant); });
-  var list = Object.keys(counts).map(function(name){
-    return { name: name, count: counts[name], temp: 36.5 + counts[name] * 0.3 };
+  var list = Object.keys(counts).map(function(k){
+    return { name: display[k], count: counts[k], temp: 36.5 + counts[k] * 0.3 };
   });
   list.sort(function(a, b){ return b.temp - a.temp || a.name.localeCompare(b.name); });
   return list;
@@ -635,8 +673,11 @@ function renderConfirmDeleteModal(ui, state){
   var title = '물품 삭제';
   if(cd && cd.kind === 'trade'){ name = '이 거래 기록'; title = '거래 기록 삭제'; }
   if(cd && cd.kind === 'bid'){ name = '이 입찰'; title = '입찰 삭제'; }
+  if(cd && cd.kind === 'selftrade'){ name = '이 거래 기록'; title = '거래 기록 삭제'; }
   if(cd){
-    if(cd.kind === 'trade'){
+    if(cd.kind === 'selftrade'){
+      if(selfTrades[cd.id]) name = selfTrades[cd.id].name + ' (' + selfTrades[cd.id].trader + ')';
+    } else if(cd.kind === 'trade'){
       var tr = state.trades.filter(function(t){ return t.id === cd.id; })[0];
       if(tr) name = tr.name;
     } else if(cd.kind === 'bid'){
@@ -687,7 +728,7 @@ function renderHome(state, ui){
         renderZoneNavCard(ZONE_META.free, state.zones.free.length) +
         renderZoneNavCard(ZONE_META.used, state.zones.used.length) +
         renderZoneNavCard(ZONE_META.auction, state.zones.auction.length) +
-        renderTradeNavCard(state.trades.length, state.tradeDeskEnabled) +
+        renderTradeNavCard(state.trades.length + Object.keys(selfTrades).length, state.tradeDeskEnabled) +
       '</div>' +
     '</div>' +
   '</div>' +
@@ -711,12 +752,73 @@ function renderTradeForm(t){
     '<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">' + (t ? '저장' : '등록하기') + '</button></div></form>';
 }
 
+function renderTradeFlow(state){
+  if(!ui.tradeName){
+    return '<form class="trade-name-form" id="trade-name-form"><h3>성함을 입력하세요</h3>' +
+      '<div class="trade-name-row"><input type="text" name="traderName" placeholder="예: 홍길동 선생님" required autocomplete="off">' +
+      '<button type="submit" class="btn btn-primary">확인</button></div></form>';
+  }
+  var tabs = ['free', 'used', 'auction'].map(function(z){
+    return '<button type="button" class="trade-tab trade-tab-' + z + (ui.tradeTab === z ? ' is-active' : '') + '" data-action="trade-tab" data-zone="' + z + '">' + TRADE_TAB_LABEL[z] + '</button>';
+  }).join('');
+  var html = '<div class="trade-flow"><div class="trade-who"><span><b>' + escapeHtml(ui.tradeName) + '</b> 님, 거래할 영역을 골라주세요</span>' +
+    '<button type="button" class="btn btn-ghost btn-sm" data-action="trade-rename">이름 변경</button></div>' +
+    '<div class="trade-tabs">' + tabs + '</div>';
+  if(ui.tradeTab){
+    var items = state.zones[ui.tradeTab] || [];
+    html += items.length ? '<div class="trade-pick-grid">' + items.map(function(it){
+      var traded = !!selfTrades[it.id];
+      var sub = ui.tradeTab === 'used' ? won(it.price) : (ui.tradeTab === 'auction' ? '시작가 ' + won(it.startPrice) : '무료');
+      var photo = it.image
+        ? '<img class="item-photo" src="' + escapeHtml(it.image) + '" alt="">'
+        : '<div class="item-photo item-photo-empty">' + ZONE_ICON[ui.tradeTab] + '</div>';
+      return '<button type="button" class="trade-pick' + (traded ? ' is-traded' : '') + '" data-action="trade-pick" data-zone="' + ui.tradeTab + '" data-id="' + it.id + '"' + (traded ? ' disabled' : '') + '>' +
+        photo + '<span class="trade-pick-name">' + escapeHtml(it.name) + '</span><span class="trade-pick-sub">' + sub + '</span>' +
+        (traded ? '<span class="trade-pick-badge">거래 완료</span>' : '') + '</button>';
+    }).join('') + '</div>' : '<p class="empty-note">이 영역에는 등록된 물품이 없어요.</p>';
+  }
+  return html + '</div>';
+}
+
+function renderTradeModals(state){
+  var html = '';
+  if(ui.tradeConfirm){
+    var it = (state.zones[ui.tradeConfirm.zone] || []).filter(function(x){ return x.id === ui.tradeConfirm.id; })[0];
+    html += '<div class="modal-backdrop" data-action="trade-cancel"></div><div class="modal" role="dialog" aria-modal="true">' +
+      '<h2>거래하시겠습니까?</h2><p>"' + escapeHtml(it ? it.name : '이 물품') + '"</p>' +
+      '<div class="form-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="trade-cancel">아니오</button>' +
+      '<button type="button" class="btn btn-primary btn-sm" data-action="trade-confirm">예</button></div></div>';
+  }
+  if(ui.tradeDone){
+    html += '<div class="modal-backdrop" data-action="trade-done-close"></div><div class="modal" role="dialog" aria-modal="true">' +
+      '<h2>거래 완료!</h2><p>"' + escapeHtml(ui.tradeDone.name) + '" 거래가 기록됐고, 온도에 반영돼요.</p>' +
+      '<div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="trade-done-close">확인</button></div></div>';
+  }
+  return html;
+}
+
+function doTrade(){
+  var tc = ui.tradeConfirm;
+  ui.tradeConfirm = null;
+  var item = tc && appState.zones[tc.zone] ? appState.zones[tc.zone].filter(function(x){ return x.id === tc.id; })[0] : null;
+  if(!item || !ui.tradeName){ rerender(); return; }
+  var rec = { name: item.name, trader: ui.tradeName, zone: tc.zone, method: '거래 창구', price: tc.zone === 'used' ? (item.price || 0) : 0, ts: Date.now() };
+  set(ref(db, 'hansolTrades/' + item.id), rec).then(function(){
+    ui.tradeDone = { name: item.name };
+    rerender();
+  }).catch(function(){
+    toast('이미 거래된 물품이거나 저장에 실패했어요.');
+  });
+  rerender();
+}
+
 function renderTradeRow(t, adminUnlocked){
   var zoneLabel = TRADE_ZONE_LABEL[t.zone] || '기타';
   var priceHtml = t.price ? '<span class="chip">' + won(t.price) + '</span>' : '';
-  var adminBtns = adminUnlocked
-    ? '<div class="trade-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="edit-trade" data-id="' + t.id + '">수정</button><button type="button" class="trade-del" data-action="delete-trade" data-id="' + t.id + '" aria-label="삭제">×</button></div>'
-    : '';
+  var adminBtns = !adminUnlocked ? ''
+    : (t.self
+      ? '<div class="trade-admin"><button type="button" class="trade-del" data-action="delete-selftrade" data-id="' + t.id + '" aria-label="삭제">×</button></div>'
+      : '<div class="trade-admin"><button type="button" class="btn btn-ghost btn-sm" data-action="edit-trade" data-id="' + t.id + '">수정</button><button type="button" class="trade-del" data-action="delete-trade" data-id="' + t.id + '" aria-label="삭제">×</button></div>');
   return '<article class="trade-card">' +
     '<div class="trade-main"><h3>' + escapeHtml(t.name) + '</h3><p class="item-desc">' + escapeHtml(t.trader) + ' 님과 거래 · ' + escapeHtml(zoneLabel) + (t.method ? ' · ' + escapeHtml(t.method) : '') + '</p></div>' +
     '<div class="trade-meta">' + priceHtml + (t.date ? '<span class="chip chip-soft">' + escapeHtml(t.date) + '</span>' : '') + '</div>' +
@@ -737,7 +839,7 @@ function renderTradeDeskPage(state, ui){
       '</section>' + footer;
   }
 
-  var trades = state.trades.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+  var trades = state.trades.concat(selfTradeList()).sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
   var open = !!ui.openForms.trade;
   var editingObj = ui.editingTrade ? state.trades.filter(function(t){ return t.id === ui.editingTrade; })[0] : null;
   var adminBar = ui.adminUnlocked
@@ -751,8 +853,9 @@ function renderTradeDeskPage(state, ui){
   var rows = trades.length ? trades.map(function(t){ return renderTradeRow(t, ui.adminUnlocked); }).join('') : '<p class="empty-note">아직 등록된 거래 기록이 없어요.</p>';
   return '<a href="#" class="back-link">← 홈으로</a>' +
     '<section class="zone zone-trade">' + head +
-      '<div class="zone-info"><div><span class="zone-info-label">등록</span><p>관리자만 거래 내역을 등록할 수 있어요.</p></div>' +
+      '<div class="zone-info"><div><span class="zone-info-label">거래 방법</span><p>성함을 입력하고 영역과 물품을 골라 거래하면 바로 기록돼요.</p></div>' +
       '<div><span class="zone-info-label">온도</span><p>거래가 많을수록 그 사람의 매너 온도가 올라가요.</p></div></div>' +
+      renderTradeFlow(state) +
       adminBar +
       '<div class="trade-list">' + rows + '</div>' +
     '</section>' + footer;
@@ -786,7 +889,8 @@ function renderApp(state, ui){
     '</div></header>' +
     '<main class="wrap">' + pageHtml + '</main>' +
     (ui.showPasscode ? renderPasscodeModal(ui) : '') +
-    (ui.confirmDelete ? renderConfirmDeleteModal(ui, state) : '');
+    (ui.confirmDelete ? renderConfirmDeleteModal(ui, state) : '') +
+    renderTradeModals(state);
 }
 
 function parseHash(){
@@ -941,6 +1045,42 @@ function onClick(e){
     rerender();
     return;
   }
+  if(action === 'trade-tab'){
+    ui.tradeTab = t.getAttribute('data-zone');
+    rerender();
+    return;
+  }
+  if(action === 'trade-rename'){
+    ui.tradeName = '';
+    ui.tradeTab = null;
+    try{ localStorage.removeItem('hansol_trader_name'); }catch(err){}
+    rerender();
+    return;
+  }
+  if(action === 'trade-pick'){
+    ui.tradeConfirm = { zone: t.getAttribute('data-zone'), id: t.getAttribute('data-id') };
+    rerender();
+    return;
+  }
+  if(action === 'trade-cancel'){
+    ui.tradeConfirm = null;
+    rerender();
+    return;
+  }
+  if(action === 'trade-confirm'){
+    doTrade();
+    return;
+  }
+  if(action === 'trade-done-close'){
+    ui.tradeDone = null;
+    rerender();
+    return;
+  }
+  if(action === 'delete-selftrade'){
+    ui.confirmDelete = { kind: 'selftrade', id: t.getAttribute('data-id') };
+    rerender();
+    return;
+  }
   if(action === 'toggle-like'){
     var likeItemId = t.getAttribute('data-id');
     var wasLiked = !!likedItems[likeItemId];
@@ -1019,6 +1159,11 @@ function onClick(e){
       rerender();
       return;
     }
+    if(cd.kind === 'selftrade'){
+      set(ref(db, 'hansolTrades/' + cd.id), null).then(function(){ toast('거래 기록을 삭제했습니다.'); }).catch(function(){ toast('삭제에 실패했어요.'); });
+      rerender();
+      return;
+    }
     var newState = clone(appState);
     if(cd.kind === 'trade'){
       newState.trades = newState.trades.filter(function(tr){ return tr.id !== cd.id; });
@@ -1032,6 +1177,15 @@ function onClick(e){
 
 function onSubmit(e){
   var form = e.target;
+  if(form.id === 'trade-name-form'){
+    e.preventDefault();
+    var tn = ((new FormData(form)).get('traderName') || '').toString().trim();
+    if(!tn) return;
+    ui.tradeName = tn;
+    try{ localStorage.setItem('hansol_trader_name', tn); }catch(err){}
+    rerender();
+    return;
+  }
   if(form.classList.contains('bid-form')){
     e.preventDefault();
     var itemId = form.getAttribute('data-item');
@@ -1192,6 +1346,9 @@ window.addEventListener('hashchange', function(){
   ui.editingItem = null;
   ui.biddingItem = null;
   ui.showBidResults = false;
+  ui.tradeTab = null;
+  ui.tradeConfirm = null;
+  ui.tradeDone = null;
   rerender();
   window.scrollTo(0, 0);
 });
@@ -1227,6 +1384,11 @@ onValue(stateRef, function(snapshot){
 
 onValue(bidsRef, function(snapshot){
   bidsData = snapshot.val() || {};
+  rerender();
+});
+
+onValue(tradesRef, function(snapshot){
+  selfTrades = snapshot.val() || {};
   rerender();
 });
 
